@@ -672,7 +672,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
         const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
+        const qrBase64Docx = await generarQRBase64(qrUrl);
  
         let body = '';
  
@@ -725,7 +725,9 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         body += parrafoVacio();
  
         // Imagen QR
-        body += `<w:p>${imagenRun(qrImageUrl, 914400, 914400)}</w:p>`;
+        if (qrBase64Docx && qrBase64Docx.includes(',')) {
+          body += `<w:p>${imagenRun('rId1', 914400, 914400)}</w:p>`;
+        }
  
         body += parrafoVacio();
  
@@ -760,7 +762,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
   </w:body>
 </w:document>`;
  
-        const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${qrImageUrl}" TargetMode="External"/></Relationships>`;
+        const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/></Relationships>`;
  
         const zip = new JSZip();
         zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -778,9 +780,12 @@ async function guardarEnSupabase(uuid, datos, tipo) {
  
         zip.file('word/document.xml', documentXml);
         zip.file('word/_rels/document.xml.rels', relsXml);
- 
-        
- 
+
+        if (qrBase64Docx && qrBase64Docx.includes(',')) {
+          const qrBytes = Uint8Array.from(atob(qrBase64Docx.split(',')[1]), c => c.charCodeAt(0));
+          zip.file('word/media/qr.png', qrBytes);
+        }
+
         const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
