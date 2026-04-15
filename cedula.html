@@ -737,6 +737,20 @@ async function qrToBMP(text) {
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
     const qrBytes = await qrToBMP(qrUrl);
 
+// Subir QR a Supabase Storage
+const qrBlob = new Blob([qrBytes], { type: 'image/bmp' });
+const uploadResp = await fetch(`${SUPABASE_URL}/storage/v1/object/qr-codes/${uuid}.bmp`, {
+  method: 'POST',
+  headers: {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'image/bmp',
+    'x-upsert': 'true'
+  },
+  body: qrBlob
+});
+const qrImageUrl = `${SUPABASE_URL}/storage/v1/object/public/qr-codes/${uuid}.bmp`;
+
     let body = '';
     body += parrafo(run('Juzgado: ', true) + run(datos.juzgado));
     body += parrafo(run('N° Expte.: ', true) + run(datos.expediente));
@@ -784,7 +798,7 @@ async function qrToBMP(text) {
 
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" mc:Ignorable="w14"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
 
-    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.bmp"/></Relationships>`;
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${qrImageUrl}"/></Relationships>`;
 
     const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="bmp" ContentType="image/bmp"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
 
@@ -795,7 +809,7 @@ async function qrToBMP(text) {
     zip.file('_rels/.rels', rootRelsXml);
     zip.file('word/document.xml', documentXml);
     zip.file('word/_rels/document.xml.rels', relsXml);
-    zip.file('word/media/qr.bmp', qrBytes, { binary: true });
+    
 
     const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const url = URL.createObjectURL(blob);
