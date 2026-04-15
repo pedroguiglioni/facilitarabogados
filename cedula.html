@@ -770,7 +770,22 @@ async function qrToPNG(texto) {
     const uuid = genUUID();
     await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
 
-    const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+    let qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+
+if (esCompleta) {
+  const nombreCarpeta = `Cedula_${datos.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}`;
+  const driveResp = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/crear-carpeta-drive', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    body: JSON.stringify({ nombre: nombreCarpeta })
+  });
+  const driveData = await driveResp.json();
+  if (driveData.folderUrl) qrUrl = driveData.folderUrl;
+}
     const qrBytes = await qrToPNG(qrUrl);
 
     if (!window.docx) {
