@@ -673,20 +673,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
 
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
 
-    // Descargar imagen QR como base64
-    const qrBytes = await new Promise((resolve) => {
-  const div = document.createElement('div');
-  document.body.appendChild(div);
-  new QRCode(div, { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
-  setTimeout(() => {
-    const canvas = div.querySelector('canvas');
-    canvas.toBlob(async (blob) => {
-      const buf = await blob.arrayBuffer();
-      resolve(new Uint8Array(buf));
-      document.body.removeChild(div);
-    }, 'image/png');
-  }, 300);
-});
+    
 
     // Construir XML del documento
     let body = '';
@@ -747,7 +734,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
 
     const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/>
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${encodeURIComponent(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrUrl}&format=png`)}"
 </Relationships>`;
 
     const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -768,7 +755,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     zip.file('_rels/.rels', rootRelsXml);
     zip.file('word/document.xml', documentXml);
     zip.file('word/_rels/document.xml.rels', relsXml);
-    zip.file('word/media/qr.png', qrBytes, { binary: true });
+    zip.file('word/media/qr.png', new Uint8Array(0), { binary: true });
 
     const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const url = URL.createObjectURL(blob);
