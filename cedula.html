@@ -672,7 +672,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
       try {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
+        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
         let body = '';
@@ -817,7 +817,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
       try {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
+        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
         const { jsPDF } = window.jspdf;
