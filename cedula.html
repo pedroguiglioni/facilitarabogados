@@ -794,7 +794,7 @@ if (esCompleta) {
     },
     body: JSON.stringify({ nombre: nombreCarpeta })
   });
-  const driveData = await driveResp.json();
+  driveData = await driveResp.json();
   if (driveData.folderUrl) qrUrl = driveData.folderUrl;
 }
     const qrBytes = await qrToPNG(qrUrl);
