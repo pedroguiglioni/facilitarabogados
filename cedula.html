@@ -674,10 +674,19 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
 
     // Descargar imagen QR como base64
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&format=png`;
-    const qrResp = await fetch(qrApiUrl);
-    const qrBuf = await qrResp.arrayBuffer();
-    const qrBytes = new Uint8Array(qrBuf);
+    const qrBytes = await new Promise((resolve) => {
+  const div = document.createElement('div');
+  document.body.appendChild(div);
+  new QRCode(div, { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+  setTimeout(() => {
+    const canvas = div.querySelector('canvas');
+    canvas.toBlob(async (blob) => {
+      const buf = await blob.arrayBuffer();
+      resolve(new Uint8Array(buf));
+      document.body.removeChild(div);
+    }, 'image/png');
+  }, 300);
+});
 
     // Construir XML del documento
     let body = '';
