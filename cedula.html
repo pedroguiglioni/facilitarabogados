@@ -753,7 +753,7 @@ async function qrToBMP(text) {
 
     const qrImageUrl = `${SUPABASE_URL}/storage/v1/object/public/qr-codes/${uuid}.bmp`;
 
-    const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle, WidthType } = docx;
+   const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle, WidthType } = window.docx;
 
     const paragraphs = [];
 
