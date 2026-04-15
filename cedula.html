@@ -686,6 +686,41 @@ async function qrToBMP(text) {
   }
   return bytes;
 }
+async function qrToPNG(texto) {
+  const temp = document.createElement('div');
+  temp.style.position = 'fixed';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  new QRCode(temp, { text: texto, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.H });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const img = temp.querySelector('img');
+  const canvasOriginal = temp.querySelector('canvas');
+  let canvas = document.createElement('canvas');
+  canvas.width = 300; canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (img) {
+    await new Promise((resolve, reject) => {
+      const qrImg = new Image();
+      qrImg.crossOrigin = 'anonymous';
+      qrImg.onload = () => { ctx.drawImage(qrImg, 0, 0, 300, 300); resolve(); };
+      qrImg.onerror = reject;
+      qrImg.src = img.src;
+    });
+  } else if (canvasOriginal) {
+    ctx.drawImage(canvasOriginal, 0, 0, 300, 300);
+  } else {
+    document.body.removeChild(temp);
+    throw new Error('No se pudo generar el QR');
+  }
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const arrayBuffer = await blob.arrayBuffer();
+  document.body.removeChild(temp);
+  return new Uint8Array(arrayBuffer);
+}
+
+
 
     // ── UUID SIMPLE ──
     function genUUID() {
@@ -736,23 +771,8 @@ async function qrToBMP(text) {
     await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
 
-    // Generar QR como PNG base64
-    const qrBase64 = await new Promise(resolve => {
-      const div = document.createElement('div');
-      document.body.appendChild(div);
-      new QRCode(div, { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
-      setTimeout(() => {
-        const canvas = div.querySelector('canvas');
-        const png = canvas.toDataURL('image/png').split(',')[1];
-        document.body.removeChild(div);
-        resolve(png);
-      }, 400);
-    });
-
-    // Convertir base64 a bytes
-    const qrBinary = atob(qrBase64);
-    const qrBytes = new Uint8Array(qrBinary.length);
-    for (let i = 0; i < qrBinary.length; i++) qrBytes[i] = qrBinary.charCodeAt(i);
+   
+const qrBytes = await qrToPNG(qrUrl);
 
     // Construir body del documento
     let body = '';
