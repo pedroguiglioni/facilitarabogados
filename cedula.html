@@ -627,6 +627,65 @@ async function guardarEnSupabase(uuid, datos, tipo) {
       });
     }
  
+function qrMatrixFromText(text) {
+  // Genera matriz QR usando qrcodejs
+  return new Promise(resolve => {
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    new QRCode(div, { text, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+    setTimeout(() => {
+      const canvas = div.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const imageData = ctx.getImageData(0, 0, size, size);
+      document.body.removeChild(div);
+      resolve({ imageData, size });
+    }, 300);
+  });
+}
+
+async function qrToBMP(text) {
+  const { imageData, size } = await qrMatrixFromText(text);
+  const scale = 1;
+  const imgSize = size * scale;
+  const rowSize = Math.ceil(imgSize * 3 / 4) * 4;
+  const pixelDataSize = rowSize * imgSize;
+  const fileSize = 54 + pixelDataSize;
+  const buf = new ArrayBuffer(fileSize);
+  const view = new DataView(buf);
+  const bytes = new Uint8Array(buf);
+  bytes[0] = 0x42; bytes[1] = 0x4D;
+  view.setUint32(2, fileSize, true);
+  view.setUint32(6, 0, true);
+  view.setUint32(10, 54, true);
+  view.setUint32(14, 40, true);
+  view.setInt32(18, imgSize, true);
+  view.setInt32(22, -imgSize, true);
+  view.setUint16(26, 1, true);
+  view.setUint16(28, 24, true);
+  view.setUint32(30, 0, true);
+  view.setUint32(34, pixelDataSize, true);
+  view.setInt32(38, 2835, true);
+  view.setInt32(42, 2835, true);
+  view.setUint32(46, 0, true);
+  view.setUint32(50, 0, true);
+  for (let row = 0; row < imgSize; row++) {
+    for (let col = 0; col < imgSize; col++) {
+      const srcRow = Math.floor(row / scale);
+      const srcCol = Math.floor(col / scale);
+      const srcIdx = (srcRow * size + srcCol) * 4;
+      const r = imageData.data[srcIdx];
+      const g = imageData.data[srcIdx + 1];
+      const b = imageData.data[srcIdx + 2];
+      const byteOffset = 54 + row * rowSize + col * 3;
+      bytes[byteOffset] = b;
+      bytes[byteOffset + 1] = g;
+      bytes[byteOffset + 2] = r;
+    }
+  }
+  return bytes;
+}
+
     // ── UUID SIMPLE ──
     function genUUID() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -672,10 +731,8 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
 
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+    const qrBytes = await qrToBMP(qrUrl);
 
-    
-
-    // Construir XML del documento
     let body = '';
     body += parrafo(run('Juzgado: ', true) + run(datos.juzgado));
     body += parrafo(run('N° Expte.: ', true) + run(datos.expediente));
@@ -721,41 +778,20 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     body += parrafoVacio();
     body += parrafo(run(`${datos.lugar}, ${datos.fechaFormateada}.-`));
 
-    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
-  mc:Ignorable="w14">
-  <w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body>
-</w:document>`;
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" mc:Ignorable="w14"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
 
-    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${encodeURIComponent(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrUrl}&format=png`)}"
-</Relationships>`;
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.bmp"/></Relationships>`;
 
-    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Default Extension="png" ContentType="image/png"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
+    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="bmp" ContentType="image/bmp"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
 
-    const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`;
+    const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
 
     const zip = new JSZip();
     zip.file('[Content_Types].xml', contentTypesXml);
     zip.file('_rels/.rels', rootRelsXml);
     zip.file('word/document.xml', documentXml);
     zip.file('word/_rels/document.xml.rels', relsXml);
-    zip.file('word/media/qr.png', new Uint8Array(0), { binary: true });
+    zip.file('word/media/qr.bmp', qrBytes, { binary: true });
 
     const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const url = URL.createObjectURL(blob);
