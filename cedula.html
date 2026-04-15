@@ -753,7 +753,16 @@ async function qrToBMP(text) {
 
     const qrImageUrl = `${SUPABASE_URL}/storage/v1/object/public/qr-codes/${uuid}.bmp`;
 
-   const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle } = docx;
+   if (typeof docx === 'undefined') {
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle } = docx;
 
     const paragraphs = [];
 
