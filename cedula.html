@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cédula de Notificación — FacilitarAbogados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- docx generation -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <!-- QR generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0f1f3d;
+      --navy-mid: #1a3260;
+      --gold: #b8972a;
+      --gold-light: #d4af50;
+      --cream: #f7f4ef;
+      --white: #ffffff;
+      --gray-light: #e8e4dd;
+      --gray-mid: #9a9488;
+      --text: #1a1a1a;
+      --text-soft: #4a4a4a;
+      --red: #c0392b;
+    }
+    body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
+
+    /* HEADER */
+    header {
+      background: var(--navy);
+      padding: 0 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+      border-bottom: 2px solid var(--gold);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--gold); border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 16px; height: 16px; fill: var(--navy); }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--white); }
+    .logo-text span { color: var(--gold-light); }
+    .back-btn { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.6); font-size: 13px; text-decoration: none; transition: color 0.2s; }
+    .back-btn:hover { color: var(--white); }
+    .back-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+    /* PROGRESS */
+    .progress-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-light);
+      padding: 14px 48px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .step-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+    .step-title { font-size: 14px; font-weight: 500; color: var(--navy); }
+
+    /* LAYOUT */
+    .page-layout {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .form-header { margin-bottom: 40px; }
+    .form-header h1 { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--navy); margin-bottom: 6px; }
+    .form-header p { font-size: 14px; color: var(--text-soft); font-weight: 300; }
+
+    /* TIPO BADGE */
+    .tipo-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .tipo-completa { background: rgba(15,31,61,0.08); color: var(--navy); }
+    .tipo-simple { background: rgba(184,151,42,0.12); color: var(--gold); }
+
+    /* SECTIONS */
+    .form-section {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--gray-light);
+    }
+    .section-num {
+      width: 28px; height: 28px;
+      background: var(--navy);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: var(--white);
+      flex-shrink: 0;
+    }
+    .section-title h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--navy); }
+
+    /* FIELDS */
+    .field-row { display: grid; gap: 16px; margin-bottom: 16px; }
+    .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .field-row.cols-1 { grid-template-columns: 1fr; }
+    @media(max-width:600px){ .field-row.cols-2 { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 600; color: var(--navy); letter-spacing: 0.02em; }
+    .field label .req { color: var(--red); margin-left: 2px; }
+    .field input, .field select, .field textarea {
+      border: 1.5px solid var(--gray-light);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--navy);
+    }
+    .field input::placeholder, .field textarea::placeholder { color: var(--gray-mid); }
+    .field textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9488' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    /* DESTINATARIOS */
+    .destinatario-block {
+      border: 1.5px solid var(--gray-light);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .destinatario-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .destinatario-label { font-size: 13px; font-weight: 600; color: var(--navy); }
+    .btn-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--gray-mid); font-size: 13px;
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 8px; border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .btn-remove:hover { background: #fff0f0; color: var(--red); }
+
+    .btn-agregar {
+      display: flex; align-items: center; gap: 8px;
+      background: none;
+      border: 1.5px dashed var(--gray-light);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px; font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
+      transition: all 0.2s;
+      margin-top: 4px;
+    }
+    .btn-agregar:hover { border-color: var(--gold); color: var(--gold); background: rgba(184,151,42,0.04); }
+
+    /* ACCIONES */
+    .form-actions {
+      display: flex; flex-direction: column; gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      padding: 16px 32px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { background: var(--navy-mid); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(15,31,61,0.25); }
+    .btn-primary svg { width: 18px; height: 18px; fill: currentColor; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--navy);
+      border: 1.5px solid var(--gray-light);
+      border-radius: 10px;
+      padding: 14px 32px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--navy); }
+    .btn-secondary svg { width: 16px; height: 16px; fill: currentColor; }
+
+    .btn-gold {
+      background: var(--gold);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      padding: 16px 32px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: all 0.2s;
+    }
+    .btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
+    .btn-gold svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* COMPLETA toggle */
+    .copias-section { display: none; }
+    .copias-section.visible { display: block; }
+
+    /* QR hidden div */
+    #qr-container { display: none; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,31,61,0.6);
+      z-index: 999;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+    }
+    .loading-overlay.active { display: flex; }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--white); font-size: 15px; font-weight: 500; }
+
+    @media(max-width:600px){
+      header, .progress-bar { padding-left: 20px; padding-right: 20px; }
+      .page-layout { padding: 32px 16px 60px; }
+      .form-section { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Generando documento...</div>
+  </div>
+
+  <div id="qr-container"></div>
+
+  <!-- HEADER -->
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+      </div>
+      <span class="logo-text">Facilitar<span>Abogados</span></span>
+    </a>
+    <a href="index.html" class="back-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Volver al inicio
+    </a>
+  </header>
+
+  <!-- PROGRESS -->
+  <div class="progress-bar">
+    <span class="step-label">Paso 1 de 1</span>
+    <span class="step-title">Cédula de Notificación</span>
+  </div>
+
+  <!-- FORM -->
+  <div class="page-layout">
+    <div class="form-header">
+      <div id="tipoBadge" class="tipo-badge tipo-simple">Simple</div>
+      <h1>Datos de la cédula</h1>
+      <p>Complete todos los campos requeridos para generar el documento</p>
+    </div>
+
+    <form id="cedulaForm" novalidate>
+
+      <!-- SECCIÓN 1: Juzgado -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">1</div>
+          <h2>Información del juzgado</h2>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Juzgado <span class="req">*</span></label>
+            <input type="text" id="juzgado" placeholder="Ej: Juzgado Civil y Comercial N° 1" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>N° Expediente <span class="req">*</span></label>
+            <input type="text" id="expediente" placeholder="Ej: 12345/2026" required>
+          </div>
+          <div class="field">
+            <label>Carátula <span class="req">*</span></label>
+            <input type="text" id="caratula" placeholder="Ej: Pérez, Juan c/ Gómez, María s/ Daños" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Jueza/Juez Dr./Dra. <span class="req">*</span></label>
+            <input type="text" id="juez" placeholder="Ej: Dra. María González" required>
+          </div>
+          <div class="field">
+            <label>Secretaría del Dr./Dra. <span class="req">*</span></label>
+            <input type="text" id="secretaria" placeholder="Ej: Dr. Carlos Rodríguez" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Domicilio del Juzgado <span class="req">*</span></label>
+            <input type="text" id="domicilioJuzgado" placeholder="Ej: Calle 9 de Julio 1234, Corrientes Capital" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Objeto de la Notificación <span class="req">*</span></label>
+            <input type="text" id="objetoNotificacion" placeholder="Ej: Traslado de demanda de daños y perjuicios" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Localidad del Juzgado <span class="req">*</span></label>
+            <select id="localidadJuzgado" required>
+              <option value="">Seleccionar localidad...</option>
+              <option value="Capital">Capital</option>
+              <option value="Alvear">Alvear</option>
+              <option value="Bella Vista">Bella Vista</option>
+              <option value="Baron de Astrada">Barón de Astrada</option>
+              <option value="Caa Cati">Caa Catí</option>
+              <option value="Colonia Liebig">Colonia Liebig</option>
+              <option value="Concepcion">Concepción</option>
+              <option value="Curuzu Cuatia">Curuzú Cuatiá</option>
+              <option value="Empedrado">Empedrado</option>
+              <option value="Esquina">Esquina</option>
+              <option value="Gdor. Martinez">Gdor. Martínez</option>
+              <option value="Gdor. Virasoro">Gdor. Virasoro</option>
+              <option value="Goya">Goya</option>
+              <option value="Ita Ibate">Itá Ibaté</option>
+              <option value="Itati">Itatí</option>
+              <option value="Ituzaingo">Ituzaingó</option>
+              <option value="La Cruz">La Cruz</option>
+              <option value="Loreto">Loreto</option>
+              <option value="Mburucuya">Mburucuyá</option>
+              <option value="Mercedes">Mercedes</option>
+              <option value="Mocoreta">Mocoretá</option>
+              <option value="Monte Caseros">Monte Caseros</option>
+              <option value="Paso de la Patria">Paso de la Patria</option>
+              <option value="Paso de los Libres">Paso de los Libres</option>
+              <option value="Perugorria">Perugorría</option>
+              <option value="Saladas">Saladas</option>
+              <option value="San Carlos">San Carlos</option>
+              <option value="San Cosme">San Cosme</option>
+              <option value="San Luis del Palmar">San Luis del Palmar</option>
+              <option value="San Martin">San Martín</option>
+              <option value="San Miguel">San Miguel</option>
+              <option value="San Roque">San Roque</option>
+              <option value="Santa Lucia">Santa Lucía</option>
+              <option value="Santo Tome">Santo Tomé</option>
+              <option value="Sauce">Sauce</option>
+              <option value="Yapeyú">Yapeyú</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: Destinatario -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">2</div>
+          <h2>Información del destinatario</h2>
+        </div>
+        <div id="destinatariosContainer">
+          <!-- Se llena dinámicamente -->
+        </div>
+        <button type="button" class="btn-agregar" id="btnAgregarDest">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Agregar destinatario
+        </button>
+      </div>
+
+      <!-- SECCIÓN 3: Contenido -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">3</div>
+          <h2>Contenido de la notificación</h2>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Providencia/Resolución <span class="req">*</span></label>
+            <textarea id="providencia" placeholder="Ingrese el texto completo de la providencia o resolución a notificar" rows="6" required></textarea>
+          </div>
+        </div>
+        <!-- Solo para completa -->
+        <div class="copias-section" id="copiasSection">
+          <div class="field-row cols-1" style="margin-top:16px">
+            <div class="field">
+              <label>Copias para traslado</label>
+              <textarea id="copias" placeholder="Enumere cada documental que se acompaña (ej: 1. Copia de demanda, 2. Documental acompañada...)" rows="4"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 4: Lugar y Fecha -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">4</div>
+          <h2>Lugar y Fecha</h2>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Lugar <span class="req">*</span></label>
+            <input type="text" id="lugar" placeholder="Ej: Corrientes" required>
+          </div>
+          <div class="field">
+            <label>Fecha <span class="req">*</span></label>
+            <input type="date" id="fecha" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div class="form-actions">
+        <button type="button" class="btn-primary" onclick="generarDocx()">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+          Descargar .DOCX
+        </button>
+        <button type="button" class="btn-gold" onclick="generarPDF()">
+          <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+          Descargar PDF
+        </button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='index.html'">
+          ← Volver al inicio
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    // ── INIT ──
+    const params = new URLSearchParams(window.location.search);
+    const tipo = params.get('tipo') || 'simple';
+    const esCompleta = tipo === 'completa';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Badge
+      const badge = document.getElementById('tipoBadge');
+      if (esCompleta) {
+        badge.textContent = 'Completa';
+        badge.className = 'tipo-badge tipo-completa';
+      }
+      // Copias section
+      if (esCompleta) {
+        document.getElementById('copiasSection').classList.add('visible');
+      }
+      // Fecha default hoy
+      document.getElementById('fecha').valueAsDate = new Date();
+      // Primer destinatario
+      agregarDestinatario();
+    });
+
+    // ── DESTINATARIOS ──
+    let destCount = 0;
+    function agregarDestinatario() {
+      destCount++;
+      const container = document.getElementById('destinatariosContainer');
+      const block = document.createElement('div');
+      block.className = 'destinatario-block';
+      block.id = `dest-${destCount}`;
+      block.innerHTML = `
+        <div class="destinatario-header">
+          <span class="destinatario-label">Destinatario ${destCount}</span>
+          ${destCount > 1 ? `<button type="button" class="btn-remove" onclick="eliminarDestinatario(${destCount})">✕ Eliminar</button>` : ''}
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Nombre y apellido del destinatario <span class="req">*</span></label>
+            <input type="text" name="dest_nombre_${destCount}" placeholder="Ej: Juan Pérez" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Domicilio del destinatario <span class="req">*</span></label>
+            <input type="text" name="dest_domicilio_${destCount}" placeholder="Ej: Av. Libertad 567, Corrientes" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Carácter del domicilio <span class="req">*</span></label>
+            <input type="text" name="dest_caracter_${destCount}" placeholder="Ej: Domicilio real" required>
+          </div>
+          <div class="field">
+            <label>Localidad del destinatario <span class="req">*</span></label>
+            <input type="text" name="dest_localidad_${destCount}" placeholder="Ej: Corrientes Capital" required>
+          </div>
+        </div>
+      `;
+      container.appendChild(block);
+    }
+
+    function eliminarDestinatario(id) {
+      const el = document.getElementById(`dest-${id}`);
+      if (el) el.remove();
+    }
+
+    document.getElementById('btnAgregarDest').addEventListener('click', agregarDestinatario);
+
+    // ── OBTENER DATOS ──
+    function getDatos() {
+      // Juzgado
+      const juzgado = document.getElementById('juzgado').value.trim();
+      const expediente = document.getElementById('expediente').value.trim();
+      const caratula = document.getElementById('caratula').value.trim();
+      const juez = document.getElementById('juez').value.trim();
+      const secretaria = document.getElementById('secretaria').value.trim();
+      const domicilioJuzgado = document.getElementById('domicilioJuzgado').value.trim();
+      const objetoNotificacion = document.getElementById('objetoNotificacion').value.trim();
+      const localidadJuzgado = document.getElementById('localidadJuzgado').value;
+      // Destinatarios
+      const destinatarios = [];
+      document.querySelectorAll('.destinatario-block').forEach(block => {
+        const id = block.id.split('-')[1];
+        const nombre = block.querySelector(`[name="dest_nombre_${id}"]`)?.value.trim() || '';
+        const domicilio = block.querySelector(`[name="dest_domicilio_${id}"]`)?.value.trim() || '';
+        const caracter = block.querySelector(`[name="dest_caracter_${id}"]`)?.value.trim() || '';
+        const localidad = block.querySelector(`[name="dest_localidad_${id}"]`)?.value.trim() || '';
+        if (nombre) destinatarios.push({ nombre, domicilio, caracter, localidad });
+      });
+      // Contenido
+      const providencia = document.getElementById('providencia').value.trim();
+      const copias = document.getElementById('copias').value.trim();
+      // Fecha y lugar
+      const lugar = document.getElementById('lugar').value.trim();
+      const fechaRaw = document.getElementById('fecha').value;
+      const fechaObj = fechaRaw ? new Date(fechaRaw + 'T00:00:00') : new Date();
+      const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const fechaFormateada = `${fechaObj.getDate()} de ${meses[fechaObj.getMonth()]} de ${fechaObj.getFullYear()}`;
+
+      return { juzgado, expediente, caratula, juez, secretaria, domicilioJuzgado, objetoNotificacion, localidadJuzgado, destinatarios, providencia, copias, lugar, fechaFormateada };
+    }
+
+    function validar(datos) {
+      if (!datos.juzgado || !datos.expediente || !datos.caratula || !datos.juez || !datos.secretaria || !datos.domicilioJuzgado || !datos.objetoNotificacion || !datos.localidadJuzgado) {
+        alert('Por favor complete todos los campos del juzgado.');
+        return false;
+      }
+      if (!datos.destinatarios.length) {
+        alert('Ingrese al menos un destinatario.');
+        return false;
+      }
+      if (!datos.providencia) {
+        alert('Ingrese el contenido de la providencia/resolución.');
+        return false;
+      }
+      if (!datos.lugar) {
+        alert('Ingrese el lugar.');
+        return false;
+      }
+      return true;
+    }
+
+    // ── QR ÚNICO ──
+    function generarQRBase64(texto) {
+      return new Promise(resolve => {
+        const div = document.getElementById('qr-container');
+        div.innerHTML = '';
+        const qr = new QRCode(div, {
+          text: texto,
+          width: 80,
+          height: 80,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        setTimeout(() => {
+          const img = div.querySelector('img') || div.querySelector('canvas');
+          if (img && img.tagName === 'IMG') resolve(img.src);
+          else if (img && img.tagName === 'CANVAS') resolve(img.toDataURL());
+          else resolve(null);
+        }, 300);
+      });
+    }
+
+    // ── UUID SIMPLE ──
+    function genUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    // ── GENERAR DOCX ──
+    async function generarDocx() {
+      const datos = getDatos();
+      if (!validar(datos)) return;
+      document.getElementById('loadingOverlay').classList.add('active');
+
+      try {
+        const uuid = genUUID();
+        const qrUrl = `https://facilitarabogados.com/verificar/${uuid}`;
+
+        const { Document, Paragraph, TextRun, AlignmentType, BorderStyle, Table, TableRow, TableCell, WidthType, Packer, ImageRun } = docx;
+
+        // QR base64
+        const qrBase64 = await generarQRBase64(qrUrl);
+
+        const bold = (text, size = 20) => new TextRun({ text, bold: true, size, font: 'Times New Roman' });
+        const normal = (text, size = 20) => new TextRun({ text, size, font: 'Times New Roman' });
+        const br = () => new Paragraph({ children: [new TextRun({ text: '', size: 20 })] });
+
+        const paragraphs = [];
+
+        // Encabezado datos juzgado
+        paragraphs.push(new Paragraph({ children: [bold('Juzgado: '), normal(datos.juzgado)] }));
+        paragraphs.push(new Paragraph({ children: [bold('N° Expte.: '), normal(datos.expediente)] }));
+        paragraphs.push(new Paragraph({ children: [bold('Carátula: '), normal(datos.caratula)] }));
+        paragraphs.push(new Paragraph({ children: [bold('Juez/a Dr./Dra: '), normal(datos.juez)] }));
+        paragraphs.push(new Paragraph({ children: [bold('Secretaría del Dr./Dra: '), normal(datos.secretaria)] }));
+        paragraphs.push(new Paragraph({ children: [bold('Domicilio del Juzgado: '), normal(datos.domicilioJuzgado)] }));
+        paragraphs.push(new Paragraph({ children: [bold('Objeto de la Notificación: '), normal(datos.objetoNotificacion)] }));
+        paragraphs.push(br());
+
+        // Título CÉDULA
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ text: 'CÉDULA', bold: true, size: 22, underline: {}, font: 'Times New Roman' })],
+          alignment: AlignmentType.CENTER
+        }));
+        paragraphs.push(br());
+
+        // Destinatarios
+        datos.destinatarios.forEach(dest => {
+          paragraphs.push(new Paragraph({ children: [bold('DESTINATARIO/S: '), normal(dest.nombre)] }));
+          paragraphs.push(new Paragraph({ children: [bold('DOMICILIO: '), normal(dest.domicilio)] }));
+          paragraphs.push(new Paragraph({ children: [bold('CARÁCTER DEL DOMICILIO: '), normal(dest.caracter)] }));
+          paragraphs.push(new Paragraph({ children: [bold('LOCALIDAD: '), normal(dest.localidad)] }));
+          paragraphs.push(br());
+        });
+
+        // Cuerpo
+        paragraphs.push(new Paragraph({
+          children: [normal('Por la presente cédula se pone en su conocimiento que en el proceso judicial mencionado se ordenó notificarle por este medio lo siguiente:')],
+          alignment: AlignmentType.JUSTIFIED
+        }));
+        paragraphs.push(br());
+
+        // Providencia en box
+        paragraphs.push(new Paragraph({
+          children: [normal(datos.providencia)],
+          border: {
+            top: { style: BorderStyle.SINGLE, size: 1 },
+            bottom: { style: BorderStyle.SINGLE, size: 1 },
+            left: { style: BorderStyle.SINGLE, size: 1 },
+            right: { style: BorderStyle.SINGLE, size: 1 }
+          },
+          spacing: { before: 80, after: 80 }
+        }));
+        paragraphs.push(br());
+
+        // Copias (si completa)
+        if (esCompleta && datos.copias) {
+          paragraphs.push(new Paragraph({
+            children: [normal(`Además, se acompañan las copias para traslado: ${datos.copias}, las cuales forman parte de esta notificación y sobre las cuales Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.`)],
+            alignment: AlignmentType.JUSTIFIED
+          }));
+          paragraphs.push(br());
+        } else if (!esCompleta) {
+          paragraphs.push(new Paragraph({
+            children: [normal('Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.')],
+            alignment: AlignmentType.JUSTIFIED
+          }));
+          paragraphs.push(br());
+        }
+
+        // QR y URL
+        paragraphs.push(new Paragraph({ children: [normal('Para acceder a ellos puede hacerlo a través de:')] }));
+        paragraphs.push(br());
+        paragraphs.push(new Paragraph({ children: [normal(`a) Cargar la URL en su navegador:`)] }));
+        paragraphs.push(new Paragraph({ children: [normal(`URL: ${qrUrl}`)] }));
+        paragraphs.push(br());
+        paragraphs.push(new Paragraph({ children: [normal('b) Escanear el siguiente QR')] }));
+        paragraphs.push(br());
+
+        // QR image
+        if (qrBase64) {
+          const base64Data = qrBase64.split(',')[1];
+          const qrBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          paragraphs.push(new Paragraph({
+            children: [new ImageRun({ data: qrBytes, transformation: { width: 80, height: 80 }, type: 'png' })]
+          }));
+        }
+
+        paragraphs.push(br());
+
+        // Cierre
+        paragraphs.push(new Paragraph({
+          children: [bold('QUEDA UD. LEGALMENTE NOTIFICADO.-')],
+          alignment: AlignmentType.CENTER
+        }));
+        paragraphs.push(br());
+        paragraphs.push(new Paragraph({ children: [normal(`${datos.lugar}, ${datos.fechaFormateada}.-`)] }));
+
+        const doc = new Document({
+          sections: [{
+            properties: {
+              page: {
+                margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 }
+              }
+            },
+            children: paragraphs
+          }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Cedula_${datos.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+      } catch(e) {
+        console.error(e);
+        alert('Error al generar el documento. Por favor intente nuevamente.');
+      } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+      }
+    }
+
+    // ── GENERAR PDF ──
+    async function generarPDF() {
+      const datos = getDatos();
+      if (!validar(datos)) return;
+      document.getElementById('loadingOverlay').classList.add('active');
+
+      try {
+        const uuid = genUUID();
+        const qrUrl = `https://facilitarabogados.com/verificar/${uuid}`;
+        const qrBase64 = await generarQRBase64(qrUrl);
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        const marginL = 25, marginR = 25, marginT = 25;
+        const pageW = 210, contentW = pageW - marginL - marginR;
+        let y = marginT;
+
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(10);
+
+        const lineH = 6;
+
+        function addLine(label, value, isBold = false) {
+          pdf.setFont('times', 'bold');
+          const labelW = pdf.getTextWidth(label);
+          pdf.text(label, marginL, y);
+          pdf.setFont('times', 'normal');
+          pdf.text(value, marginL + labelW, y);
+          y += lineH;
+        }
+
+        function addText(text, justify = false) {
+          const lines = pdf.splitTextToSize(text, contentW);
+          lines.forEach(line => {
+            if (y > 270) { pdf.addPage(); y = marginT; }
+            pdf.text(line, marginL, y);
+            y += lineH;
+          });
+        }
+
+        function addSpace(h = 4) { y += h; }
+
+        // Header
+        addLine('Juzgado: ', datos.juzgado);
+        addLine('N° Expte.: ', datos.expediente);
+        addLine('Carátula: ', datos.caratula);
+        addLine('Juez/a Dr./Dra: ', datos.juez);
+        addLine('Secretaría del Dr./Dra: ', datos.secretaria);
+        addLine('Domicilio del Juzgado: ', datos.domicilioJuzgado);
+        addLine('Objeto de la Notificación: ', datos.objetoNotificacion);
+        addSpace(8);
+
+        // Título
+        pdf.setFont('times', 'bold');
+        pdf.setFontSize(11);
+        const tituloW = pdf.getTextWidth('CÉDULA');
+        pdf.text('CÉDULA', marginL + (contentW - tituloW) / 2, y);
+        y += lineH;
+        addSpace(4);
+
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(10);
+
+        // Destinatarios
+        datos.destinatarios.forEach(dest => {
+          addLine('DESTINATARIO/S: ', dest.nombre);
+          addLine('DOMICILIO: ', dest.domicilio);
+          addLine('CARÁCTER DEL DOMICILIO: ', dest.caracter);
+          addLine('LOCALIDAD: ', dest.localidad);
+          addSpace(4);
+        });
+
+        // Cuerpo
+        addText('Por la presente cédula se pone en su conocimiento que en el proceso judicial mencionado se ordenó notificarle por este medio lo siguiente:');
+        addSpace(4);
+
+        // Caja providencia
+        const provLines = pdf.splitTextToSize(datos.providencia, contentW - 8);
+        const boxH = provLines.length * lineH + 8;
+        if (y + boxH > 270) { pdf.addPage(); y = marginT; }
+        pdf.rect(marginL, y, contentW, boxH);
+        provLines.forEach(line => {
+          y += lineH;
+          pdf.text(line, marginL + 4, y - 1);
+        });
+        y += 8;
+        addSpace(4);
+
+        // Copias
+        if (esCompleta && datos.copias) {
+          addText(`Además, se acompañan las copias para traslado: ${datos.copias}, las cuales forman parte de esta notificación y sobre las cuales Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.`);
+        } else {
+          addText('Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.');
+        }
+        addSpace(4);
+
+        // QR y URL
+        addText('Para acceder a ellos puede hacerlo a través de:');
+        addSpace(2);
+        addText('a) Cargar la URL en su navegador:');
+        addText(`URL: ${qrUrl}`);
+        addSpace(2);
+        addText('b) Escanear el siguiente QR');
+        addSpace(2);
+
+        if (qrBase64) {
+          if (y + 25 > 270) { pdf.addPage(); y = marginT; }
+          pdf.addImage(qrBase64, 'PNG', marginL, y, 25, 25);
+          y += 30;
+        }
+
+        addSpace(4);
+
+        // Cierre
+        pdf.setFont('times', 'bold');
+        const notifW = pdf.getTextWidth('QUEDA UD. LEGALMENTE NOTIFICADO.-');
+        pdf.text('QUEDA UD. LEGALMENTE NOTIFICADO.-', marginL + (contentW - notifW) / 2, y);
+        y += lineH + 4;
+
+        pdf.setFont('times', 'normal');
+        pdf.text(`${datos.lugar}, ${datos.fechaFormateada}.-`, marginL, y);
+
+        pdf.save(`Cedula_${datos.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.pdf`);
+
+      } catch(e) {
+        console.error(e);
+        alert('Error al generar el PDF. Por favor intente nuevamente.');
+      } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+      }
+    }
+  </script>
+</body>
+</html>

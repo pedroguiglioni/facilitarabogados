@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandamiento Estandarizado — FacilitarAbogados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0f1f3d; --navy-mid: #1a3260; --gold: #b8972a; --gold-light: #d4af50;
+      --cream: #f7f4ef; --white: #ffffff; --gray-light: #e8e4dd; --gray-mid: #9a9488;
+      --text: #1a1a1a; --text-soft: #4a4a4a; --red: #c0392b;
+    }
+    body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
+    header { background: var(--navy); padding: 0 48px; display: flex; align-items: center; justify-content: space-between; height: 64px; border-bottom: 2px solid var(--gold); position: sticky; top: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--gold); border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 16px; height: 16px; fill: var(--navy); }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--white); }
+    .logo-text span { color: var(--gold-light); }
+    .back-btn { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.6); font-size: 13px; text-decoration: none; transition: color 0.2s; }
+    .back-btn:hover { color: var(--white); }
+    .back-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+    .progress-bar { background: var(--white); border-bottom: 1px solid var(--gray-light); padding: 14px 48px; display: flex; align-items: center; gap: 16px; }
+    .step-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+    .step-title { font-size: 14px; font-weight: 500; color: var(--navy); }
+    .page-layout { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+    .form-header { margin-bottom: 40px; }
+    .form-header h1 { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--navy); margin-bottom: 6px; }
+    .form-header p { font-size: 14px; color: var(--text-soft); font-weight: 300; }
+    .tipo-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 20px; }
+    .tipo-completo { background: rgba(15,31,61,0.08); color: var(--navy); }
+    .tipo-simple { background: rgba(184,151,42,0.12); color: var(--gold); }
+    .form-section { background: var(--white); border: 1px solid var(--gray-light); border-radius: 12px; padding: 32px; margin-bottom: 24px; }
+    .section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--gray-light); }
+    .section-num { width: 28px; height: 28px; background: var(--navy); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--white); flex-shrink: 0; }
+    .section-title h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--navy); }
+    .field-row { display: grid; gap: 16px; margin-bottom: 16px; }
+    .field-row.cols-2 { grid-template-columns: 1fr 1fr; }
+    .field-row.cols-1 { grid-template-columns: 1fr; }
+    @media(max-width:600px){ .field-row.cols-2 { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 13px; font-weight: 600; color: var(--navy); letter-spacing: 0.02em; }
+    .field label .req { color: var(--red); margin-left: 2px; }
+    .field input, .field select, .field textarea { border: 1.5px solid var(--gray-light); border-radius: 8px; padding: 10px 14px; font-family: 'Source Sans 3', sans-serif; font-size: 14px; color: var(--text); background: var(--white); transition: border-color 0.2s; outline: none; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--navy); }
+    .field input::placeholder, .field textarea::placeholder { color: var(--gray-mid); }
+    .field textarea { resize: vertical; min-height: 150px; line-height: 1.6; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9488' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+    .hint-box { background: rgba(184,151,42,0.06); border: 1px solid rgba(184,151,42,0.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+    .hint-box p { font-size: 12px; color: var(--text-soft); line-height: 1.6; }
+    .hint-box strong { color: var(--navy); font-weight: 600; }
+    .copias-section { display: none; }
+    .copias-section.visible { display: block; }
+    .form-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
+    .btn-primary { background: var(--navy); color: var(--white); border: none; border-radius: 10px; padding: 16px 32px; font-family: 'Source Sans 3', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--navy-mid); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(15,31,61,0.25); }
+    .btn-primary svg { width: 18px; height: 18px; fill: currentColor; }
+    .btn-secondary { background: transparent; color: var(--navy); border: 1.5px solid var(--gray-light); border-radius: 10px; padding: 14px 32px; font-family: 'Source Sans 3', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: var(--navy); }
+    .btn-gold { background: var(--gold); color: var(--white); border: none; border-radius: 10px; padding: 16px 32px; font-family: 'Source Sans 3', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s; }
+    .btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
+    .btn-gold svg { width: 18px; height: 18px; fill: currentColor; }
+    #qr-container { display: none; }
+    .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(15,31,61,0.6); z-index: 999; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .loading-overlay.active { display: flex; }
+    .loading-spinner { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--white); font-size: 15px; font-weight: 500; }
+    @media(max-width:600px){ header, .progress-bar { padding-left: 20px; padding-right: 20px; } .page-layout { padding: 32px 16px 60px; } .form-section { padding: 24px 20px; } }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Generando documento...</div>
+  </div>
+  <div id="qr-container"></div>
+
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg></div>
+      <span class="logo-text">Facilitar<span>Abogados</span></span>
+    </a>
+    <a href="index.html" class="back-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Volver al inicio
+    </a>
+  </header>
+
+  <div class="progress-bar">
+    <span class="step-label">Paso 1 de 1</span>
+    <span class="step-title">Mandamiento Estandarizado</span>
+  </div>
+
+  <div class="page-layout">
+    <div class="form-header">
+      <div id="tipoBadge" class="tipo-badge tipo-simple">Simple</div>
+      <h1>Datos del mandamiento</h1>
+      <p>Complete todos los campos requeridos para generar el documento</p>
+    </div>
+
+    <form id="mandamientoForm" novalidate>
+
+      <!-- SECCIÓN 1 -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">1</div>
+          <h2>Información del juzgado</h2>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Juzgado <span class="req">*</span></label>
+            <input type="text" id="juzgado" placeholder="Ej: Juzgado de Familia, Niñez y Adolescencia N° 2" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>N° Expediente <span class="req">*</span></label>
+            <input type="text" id="expediente" placeholder="Ej: 12345/2026" required>
+          </div>
+          <div class="field">
+            <label>Carátula <span class="req">*</span></label>
+            <input type="text" id="caratula" placeholder="Ej: Pérez, Juan c/ Gómez, María s/ Ejecución" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Juez/a Dr./Dra. <span class="req">*</span></label>
+            <input type="text" id="juez" placeholder="Ej: Dra. María González" required>
+          </div>
+          <div class="field">
+            <label>Secretaría del Dr./Dra. <span class="req">*</span></label>
+            <input type="text" id="secretaria" placeholder="Ej: Dr. Carlos Rodríguez" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Domicilio del Juzgado <span class="req">*</span></label>
+            <input type="text" id="domicilioJuzgado" placeholder="Ej: Calle 9 de Julio 1234, Corrientes Capital" required>
+          </div>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Domicilio a diligenciar <span class="req">*</span></label>
+            <input type="text" id="domicilioDiligenciar" placeholder="Determinar con la mayor precisión posible el lugar a diligenciar" required>
+          </div>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Resolución N° <span class="req">*</span></label>
+            <input type="text" id="resolucionNum" placeholder="Ej: 123/2026" required>
+          </div>
+          <div class="field">
+            <label>Localidad del Juzgado <span class="req">*</span></label>
+            <select id="localidadJuzgado" required>
+              <option value="">Seleccionar localidad...</option>
+              <option>Capital</option><option>Alvear</option><option>Bella Vista</option>
+              <option>Barón de Astrada</option><option>Caa Catí</option><option>Colonia Liebig</option>
+              <option>Concepción</option><option>Curuzú Cuatiá</option><option>Empedrado</option>
+              <option>Esquina</option><option>Gdor. Martínez</option><option>Gdor. Virasoro</option>
+              <option>Goya</option><option>Itá Ibaté</option><option>Itatí</option>
+              <option>Ituzaingó</option><option>La Cruz</option><option>Loreto</option>
+              <option>Mburucuyá</option><option>Mercedes</option><option>Mocoretá</option>
+              <option>Monte Caseros</option><option>Paso de la Patria</option><option>Paso de los Libres</option>
+              <option>Perugorría</option><option>Saladas</option><option>San Carlos</option>
+              <option>San Cosme</option><option>San Luis del Palmar</option><option>San Martín</option>
+              <option>San Miguel</option><option>San Roque</option><option>Santa Lucía</option>
+              <option>Santo Tomé</option><option>Sauce</option><option>Yapeyú</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 2: Resolución -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">2</div>
+          <h2>Resolución</h2>
+        </div>
+        <div class="hint-box">
+          <p>La resolución debe contener: <strong>OBJETO</strong> del mandamiento en forma clara y precisa · <strong>PERSONAS AUTORIZADAS</strong> a intervenir · <strong>FACULTADES OTORGADAS</strong> a los intervinientes · <strong>FACULTADES</strong> acordadas al Sr. oficial de justicia</p>
+        </div>
+        <div class="field-row cols-1">
+          <div class="field">
+            <label>Resolución <span class="req">*</span></label>
+            <textarea id="resolucion" placeholder="Transcribir el contenido completo de la resolución..." rows="8" required></textarea>
+          </div>
+        </div>
+        <!-- Copias solo si completo -->
+        <div class="copias-section" id="copiasSection">
+          <div class="field-row cols-1" style="margin-top:16px">
+            <div class="field">
+              <label>Copias para traslado</label>
+              <textarea id="copias" placeholder="Enumere cada documental que se acompaña..." rows="4"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: Lugar y Fecha -->
+      <div class="form-section">
+        <div class="section-title">
+          <div class="section-num">3</div>
+          <h2>Lugar y Fecha</h2>
+        </div>
+        <div class="field-row cols-2">
+          <div class="field">
+            <label>Lugar <span class="req">*</span></label>
+            <input type="text" id="lugar" placeholder="Ej: Corrientes" required>
+          </div>
+          <div class="field">
+            <label>Fecha <span class="req">*</span></label>
+            <input type="date" id="fecha" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div class="form-actions">
+        <button type="button" class="btn-primary" onclick="generarDocx()">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+          Descargar .DOCX
+        </button>
+        <button type="button" class="btn-gold" onclick="generarPDF()">
+          <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>
+          Descargar PDF
+        </button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='index.html'">
+          ← Volver al inicio
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const tipo = params.get('tipo') || 'simple';
+    const esCompleto = tipo === 'completo';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const badge = document.getElementById('tipoBadge');
+      if (esCompleto) {
+        badge.textContent = 'Completo';
+        badge.className = 'tipo-badge tipo-completo';
+        document.getElementById('copiasSection').classList.add('visible');
+      }
+      document.getElementById('fecha').valueAsDate = new Date();
+    });
+
+    function getDatos() {
+      const juzgado = document.getElementById('juzgado').value.trim();
+      const expediente = document.getElementById('expediente').value.trim();
+      const caratula = document.getElementById('caratula').value.trim();
+      const juez = document.getElementById('juez').value.trim();
+      const secretaria = document.getElementById('secretaria').value.trim();
+      const domicilioJuzgado = document.getElementById('domicilioJuzgado').value.trim();
+      const domicilioDiligenciar = document.getElementById('domicilioDiligenciar').value.trim();
+      const resolucionNum = document.getElementById('resolucionNum').value.trim();
+      const localidadJuzgado = document.getElementById('localidadJuzgado').value;
+      const resolucion = document.getElementById('resolucion').value.trim();
+      const copias = document.getElementById('copias')?.value.trim() || '';
+      const lugar = document.getElementById('lugar').value.trim();
+      const fechaRaw = document.getElementById('fecha').value;
+      const fechaObj = fechaRaw ? new Date(fechaRaw + 'T00:00:00') : new Date();
+      const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const dia = fechaObj.getDate();
+      const mes = meses[fechaObj.getMonth()];
+      const anio = fechaObj.getFullYear();
+      return { juzgado, expediente, caratula, juez, secretaria, domicilioJuzgado, domicilioDiligenciar, resolucionNum, localidadJuzgado, resolucion, copias, lugar, dia, mes, anio };
+    }
+
+    function validar(d) {
+      if (!d.juzgado || !d.expediente || !d.caratula || !d.juez || !d.secretaria || !d.domicilioJuzgado || !d.domicilioDiligenciar || !d.resolucionNum || !d.localidadJuzgado) {
+        alert('Por favor complete todos los campos del juzgado.'); return false;
+      }
+      if (!d.resolucion) { alert('Ingrese el contenido de la resolución.'); return false; }
+      if (!d.lugar) { alert('Ingrese el lugar.'); return false; }
+      return true;
+    }
+
+    function genUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+
+    function generarQRBase64(texto) {
+      return new Promise(resolve => {
+        const div = document.getElementById('qr-container');
+        div.innerHTML = '';
+        new QRCode(div, { text: texto, width: 80, height: 80, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+        setTimeout(() => {
+          const img = div.querySelector('img') || div.querySelector('canvas');
+          if (img?.tagName === 'IMG') resolve(img.src);
+          else if (img?.tagName === 'CANVAS') resolve(img.toDataURL());
+          else resolve(null);
+        }, 300);
+      });
+    }
+
+    async function generarDocx() {
+      const d = getDatos();
+      if (!validar(d)) return;
+      document.getElementById('loadingOverlay').classList.add('active');
+      try {
+        const uuid = genUUID();
+        const qrUrl = `https://facilitarabogados.com/verificar/${uuid}`;
+        const qrBase64 = await generarQRBase64(qrUrl);
+        const { Document, Paragraph, TextRun, AlignmentType, BorderStyle, Packer, ImageRun } = docx;
+
+        const bold = (t, s=20) => new TextRun({ text: t, bold: true, size: s, font: 'Times New Roman' });
+        const normal = (t, s=20) => new TextRun({ text: t, size: s, font: 'Times New Roman' });
+        const br = () => new Paragraph({ children: [new TextRun({ text: '', size: 20 })] });
+
+        const ps = [];
+
+        ps.push(new Paragraph({ children: [bold('Juzgado: '), normal(d.juzgado)] }));
+        ps.push(new Paragraph({ children: [bold('N° Expte.: '), normal(d.expediente)] }));
+        ps.push(new Paragraph({ children: [bold('Carátula: '), normal(d.caratula)] }));
+        ps.push(new Paragraph({ children: [bold('Juez/a Dr./Dra: '), normal(d.juez)] }));
+        ps.push(new Paragraph({ children: [bold('Secretaría del Dr./Dra: '), normal(d.secretaria)] }));
+        ps.push(new Paragraph({ children: [bold('Domicilio del Juzgado: '), normal(d.domicilioJuzgado)] }));
+        ps.push(br());
+
+        ps.push(new Paragraph({
+          children: [new TextRun({ text: 'MANDAMIENTO', bold: true, size: 22, underline: {}, font: 'Times New Roman' })],
+          alignment: AlignmentType.CENTER
+        }));
+        ps.push(br());
+
+        ps.push(new Paragraph({
+          children: [
+            normal('El Sr. Oficial de Justicia se hará presente en el domicilio ubicado en '),
+            bold(d.domicilioDiligenciar),
+            normal(`, y PROCEDERÁ a dar cumplimiento de lo ordenado en el expediente mencionado mediante la Resolución N°`),
+            bold(d.resolucionNum),
+            normal(`, que a continuación se transcribe:`)
+          ],
+          alignment: AlignmentType.JUSTIFIED
+        }));
+        ps.push(br());
+
+        ps.push(new Paragraph({
+          children: [normal(d.resolucion)],
+          border: {
+            top: { style: BorderStyle.SINGLE, size: 1 },
+            bottom: { style: BorderStyle.SINGLE, size: 1 },
+            left: { style: BorderStyle.SINGLE, size: 1 },
+            right: { style: BorderStyle.SINGLE, size: 1 }
+          },
+          spacing: { before: 80, after: 80 }
+        }));
+        ps.push(br());
+
+        if (esCompleto && d.copias) {
+          ps.push(new Paragraph({
+            children: [normal(`Además, se acompañan las copias para traslado: ${d.copias}, las cuales forman parte de esta orden.`)],
+            alignment: AlignmentType.JUSTIFIED
+          }));
+          ps.push(br());
+        }
+
+        ps.push(new Paragraph({ children: [normal('Para acceder a ellos puede hacerlo a través de:')] }));
+        ps.push(br());
+        ps.push(new Paragraph({ children: [normal('a) Cargar la URL en su navegador:')] }));
+        ps.push(new Paragraph({ children: [normal(`URL: ${qrUrl}`)] }));
+        ps.push(br());
+        ps.push(new Paragraph({ children: [normal('b) Escanear el siguiente QR')] }));
+        ps.push(br());
+
+        if (qrBase64) {
+          const base64Data = qrBase64.split(',')[1];
+          const qrBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          ps.push(new Paragraph({
+            children: [new ImageRun({ data: qrBytes, transformation: { width: 80, height: 80 }, type: 'png' })]
+          }));
+        }
+
+        ps.push(br());
+        ps.push(new Paragraph({
+          children: [normal(`Dado, sellado y firmado en la Sala de mi Público Despacho, a los ${d.dia} días del mes de ${d.mes} del año ${d.anio}.-`)],
+          alignment: AlignmentType.JUSTIFIED
+        }));
+
+        const doc = new Document({
+          sections: [{
+            properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } },
+            children: ps
+          }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) {
+        console.error(e);
+        alert('Error al generar el documento.');
+      } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+      }
+    }
+
+    async function generarPDF() {
+      const d = getDatos();
+      if (!validar(d)) return;
+      document.getElementById('loadingOverlay').classList.add('active');
+      try {
+        const uuid = genUUID();
+        const qrUrl = `https://facilitarabogados.com/verificar/${uuid}`;
+        const qrBase64 = await generarQRBase64(qrUrl);
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+        const marginL = 25, marginR = 25, marginT = 25;
+        const contentW = 210 - marginL - marginR;
+        let y = marginT;
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(10);
+        const lineH = 6;
+
+        function addLine(label, value) {
+          pdf.setFont('times', 'bold');
+          const lw = pdf.getTextWidth(label);
+          pdf.text(label, marginL, y);
+          pdf.setFont('times', 'normal');
+          pdf.text(value, marginL + lw, y);
+          y += lineH;
+        }
+        function addText(text) {
+          const lines = pdf.splitTextToSize(text, contentW);
+          lines.forEach(line => {
+            if (y > 270) { pdf.addPage(); y = marginT; }
+            pdf.text(line, marginL, y);
+            y += lineH;
+          });
+        }
+        function sp(h=4) { y += h; }
+
+        addLine('Juzgado: ', d.juzgado);
+        addLine('N° Expte.: ', d.expediente);
+        addLine('Carátula: ', d.caratula);
+        addLine('Juez/a Dr./Dra: ', d.juez);
+        addLine('Secretaría del Dr./Dra: ', d.secretaria);
+        addLine('Domicilio del Juzgado: ', d.domicilioJuzgado);
+        sp(8);
+
+        pdf.setFont('times', 'bold');
+        pdf.setFontSize(11);
+        const tw = pdf.getTextWidth('MANDAMIENTO');
+        pdf.text('MANDAMIENTO', marginL + (contentW - tw) / 2, y);
+        y += lineH;
+        sp(4);
+
+        pdf.setFont('times', 'normal');
+        pdf.setFontSize(10);
+        addText(`El Sr. Oficial de Justicia se hará presente en el domicilio ubicado en ${d.domicilioDiligenciar}, y PROCEDERÁ a dar cumplimiento de lo ordenado en el expediente mencionado mediante la Resolución N° ${d.resolucionNum}, que a continuación se transcribe:`);
+        sp(4);
+
+        const resLines = pdf.splitTextToSize(d.resolucion, contentW - 8);
+        const boxH = resLines.length * lineH + 8;
+        if (y + boxH > 270) { pdf.addPage(); y = marginT; }
+        pdf.rect(marginL, y, contentW, boxH);
+        resLines.forEach(line => { y += lineH; pdf.text(line, marginL + 4, y - 1); });
+        y += 8;
+        sp(4);
+
+        if (esCompleto && d.copias) {
+          addText(`Además, se acompañan las copias para traslado: ${d.copias}, las cuales forman parte de esta orden.`);
+          sp(4);
+        }
+
+        addText('Para acceder a ellos puede hacerlo a través de:');
+        sp(2);
+        addText('a) Cargar la URL en su navegador:');
+        addText(`URL: ${qrUrl}`);
+        sp(2);
+        addText('b) Escanear el siguiente QR');
+        sp(2);
+
+        if (qrBase64) {
+          if (y + 25 > 270) { pdf.addPage(); y = marginT; }
+          pdf.addImage(qrBase64, 'PNG', marginL, y, 25, 25);
+          y += 30;
+        }
+
+        sp(4);
+        addText(`Dado, sellado y firmado en la Sala de mi Público Despacho, a los ${d.dia} días del mes de ${d.mes} del año ${d.anio}.-`);
+
+        pdf.save(`Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.pdf`);
+      } catch(e) {
+        console.error(e);
+        alert('Error al generar el PDF.');
+      } finally {
+        document.getElementById('loadingOverlay').classList.remove('active');
+      }
+    }
+  </script>
+</body>
+</html>

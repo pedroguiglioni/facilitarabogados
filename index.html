@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FacilitarAbogados — Documentos Judiciales Estandarizados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --navy: #0f1f3d;
+      --navy-mid: #1a3260;
+      --gold: #b8972a;
+      --gold-light: #d4af50;
+      --cream: #f7f4ef;
+      --white: #ffffff;
+      --gray-light: #e8e4dd;
+      --gray-mid: #9a9488;
+      --text: #1a1a1a;
+      --text-soft: #4a4a4a;
+    }
+ 
+    html { scroll-behavior: smooth; }
+ 
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+    }
+ 
+    /* ── HEADER ── */
+    header {
+      background: var(--navy);
+      padding: 0 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 2px solid var(--gold);
+    }
+ 
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+ 
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--gold);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+ 
+    .logo-icon svg { width: 20px; height: 20px; fill: var(--navy); }
+ 
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: 0.02em;
+    }
+ 
+    .logo-text span { color: var(--gold-light); }
+ 
+    .header-badge {
+      background: rgba(184,151,42,0.15);
+      border: 1px solid rgba(184,151,42,0.4);
+      color: var(--gold-light);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+ 
+    /* ── HERO ── */
+    .hero {
+      background: var(--navy);
+      padding: 80px 48px 72px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+ 
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(184,151,42,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+ 
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(184,151,42,0.12);
+      border: 1px solid rgba(184,151,42,0.3);
+      color: var(--gold-light);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+ 
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+    }
+ 
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.15;
+      max-width: 700px;
+      margin: 0 auto 20px;
+      letter-spacing: -0.01em;
+    }
+ 
+    .hero h1 em {
+      font-style: normal;
+      color: var(--gold-light);
+    }
+ 
+    .hero p {
+      font-size: 17px;
+      color: rgba(255,255,255,0.65);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+ 
+    /* ── ESCUDO ── */
+    .escudo-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-light);
+      padding: 16px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+ 
+    .escudo-bar img {
+      height: 40px;
+      opacity: 0.85;
+    }
+ 
+    .escudo-bar-text {
+      font-size: 13px;
+      color: var(--gray-mid);
+      font-weight: 500;
+      letter-spacing: 0.03em;
+    }
+ 
+    /* ── PRODUCTOS ── */
+    .productos-section {
+      padding: 64px 48px 80px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+ 
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+ 
+    .section-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 10px;
+    }
+ 
+    .section-header p {
+      font-size: 15px;
+      color: var(--text-soft);
+      font-weight: 300;
+    }
+ 
+    .productos-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+ 
+    @media (max-width: 768px) {
+      .productos-grid { grid-template-columns: 1fr; }
+      header, .hero, .productos-section, .escudo-bar { padding-left: 24px; padding-right: 24px; }
+    }
+ 
+    .producto-card {
+      background: var(--white);
+      border: 1px solid var(--gray-light);
+      border-radius: 12px;
+      padding: 36px 32px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+ 
+    .producto-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: var(--gold);
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform 0.25s ease;
+    }
+ 
+    .producto-card:hover {
+      border-color: var(--gold);
+      box-shadow: 0 8px 32px rgba(15,31,61,0.1);
+      transform: translateY(-2px);
+    }
+ 
+    .producto-card:hover::before { transform: scaleY(1); }
+ 
+    .producto-tipo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+ 
+    .producto-tipo svg { width: 14px; height: 14px; fill: var(--gold); }
+ 
+    .producto-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--navy);
+      line-height: 1.3;
+    }
+ 
+    .producto-card p {
+      font-size: 14px;
+      color: var(--text-soft);
+      line-height: 1.6;
+      font-weight: 300;
+      flex: 1;
+    }
+ 
+    .producto-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--gray-light);
+      margin-top: auto;
+    }
+ 
+    .producto-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+ 
+    .badge-completo {
+      background: rgba(15,31,61,0.07);
+      color: var(--navy);
+    }
+ 
+    .badge-simple {
+      background: rgba(184,151,42,0.1);
+      color: var(--gold);
+    }
+ 
+    .producto-cta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+    }
+ 
+    .producto-cta svg {
+      width: 16px; height: 16px;
+      fill: none;
+      stroke: var(--navy);
+      stroke-width: 2;
+      transition: transform 0.2s;
+    }
+ 
+    .producto-card:hover .producto-cta svg { transform: translateX(4px); }
+ 
+    /* ── COMO FUNCIONA ── */
+    .como-section {
+      background: var(--navy);
+      padding: 64px 48px;
+    }
+ 
+    .como-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+ 
+    .como-inner h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: var(--white);
+      margin-bottom: 48px;
+    }
+ 
+    .pasos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+ 
+    @media (max-width: 640px) {
+      .pasos { grid-template-columns: 1fr; }
+    }
+ 
+    .paso {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+ 
+    .paso-num {
+      width: 48px; height: 48px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+ 
+    .paso h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--white);
+    }
+ 
+    .paso p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+ 
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+ 
+    footer p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+    }
+ 
+    footer strong { color: var(--gold-light); font-weight: 500; }
+ 
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+ 
+    .producto-card {
+      animation: fadeUp 0.5s ease both;
+    }
+    .producto-card:nth-child(1) { animation-delay: 0.05s; }
+    .producto-card:nth-child(2) { animation-delay: 0.1s; }
+    .producto-card:nth-child(3) { animation-delay: 0.15s; }
+    .producto-card:nth-child(4) { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+ 
+  <!-- HEADER -->
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+      </div>
+      <span class="logo-text">Facilitar<span>Abogados</span></span>
+    </a>
+    <div class="header-badge">Poder Judicial · Corrientes</div>
+  </header>
+ 
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">Documentos Judiciales Estandarizados</div>
+    <h1>Generá tu <em>cédula</em> o <em>mandamiento</em> en minutos</h1>
+    <p>Completá el formulario, descargá el documento listo para presentar. Formato oficial según Acuerdos 5 y 6/26 del Poder Judicial de Corrientes.</p>
+  </section>
+ 
+  <!-- ESCUDO BAR -->
+  <div class="escudo-bar">
+    <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="50" cy="50" rx="48" ry="48" fill="#0f1f3d" opacity="0.08"/>
+      <text x="50" y="65" text-anchor="middle" font-size="40" fill="#0f1f3d" opacity="0.5">⚖</text>
+    </svg>
+    <span class="escudo-bar-text">Documentos estandarizados según normativa del Poder Judicial de la Provincia de Corrientes</span>
+  </div>
+ 
+  <!-- PRODUCTOS -->
+  <section class="productos-section">
+    <div class="section-header">
+      <h2>Seleccioná el documento</h2>
+      <p>Elegí el tipo de documento que necesitás generar</p>
+    </div>
+ 
+    <div class="productos-grid">
+ 
+      <!-- Cédula Completa -->
+      <a href="cedula.html?tipo=completa" class="producto-card">
+        <div class="producto-tipo">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
+          Cédula de Notificación
+        </div>
+        <h3>Cédula con Traslado o Articulado</h3>
+        <p>Incluye sección de destinatario, contenido de la notificación, copias para traslado y QR de verificación. Formato completo según Ac. 5 y 6/26.</p>
+        <div class="producto-card-footer">
+          <span class="producto-badge badge-completo">Completa</span>
+          <span class="producto-cta">
+            Completar formulario
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+ 
+      <!-- Cédula Simple -->
+      <a href="cedula.html?tipo=simple" class="producto-card">
+        <div class="producto-tipo">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
+          Cédula de Notificación
+        </div>
+        <h3>Cédula Simple</h3>
+        <p>Versión simplificada de la cédula de notificación. Sin copias para traslado. Ideal para notificaciones directas sin documentación adjunta.</p>
+        <div class="producto-card-footer">
+          <span class="producto-badge badge-simple">Simple</span>
+          <span class="producto-cta">
+            Completar formulario
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+ 
+      <!-- Mandamiento Completo -->
+      <a href="mandamiento.html?tipo=completo" class="producto-card">
+        <div class="producto-tipo">
+          <svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+          Mandamiento
+        </div>
+        <h3>Mandamiento con Traslado</h3>
+        <p>Mandamiento estandarizado para el Oficial de Justicia. Incluye objeto, personas autorizadas, facultades y copias para traslado. Formato Ac. 5 y 6/26.</p>
+        <div class="producto-card-footer">
+          <span class="producto-badge badge-completo">Completo</span>
+          <span class="producto-cta">
+            Completar formulario
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+ 
+      <!-- Mandamiento Simple -->
+      <a href="mandamiento.html?tipo=simple" class="producto-card">
+        <div class="producto-tipo">
+          <svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+          Mandamiento
+        </div>
+        <h3>Mandamiento Simple</h3>
+        <p>Versión simplificada del mandamiento. Sin copias para traslado. Para diligencias directas donde no se requiere documentación adjunta.</p>
+        <div class="producto-card-footer">
+          <span class="producto-badge badge-simple">Simple</span>
+          <span class="producto-cta">
+            Completar formulario
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+ 
+    </div>
+  </section>
+ 
+  <!-- CÓMO FUNCIONA -->
+  <section class="como-section">
+    <div class="como-inner">
+      <h2>¿Cómo funciona?</h2>
+      <div class="pasos">
+        <div class="paso">
+          <div class="paso-num">1</div>
+          <h4>Completá el formulario</h4>
+          <p>Ingresá los datos del juzgado, destinatario y contenido de la notificación o diligencia.</p>
+        </div>
+        <div class="paso">
+          <div class="paso-num">2</div>
+          <h4>El sistema genera el documento</h4>
+          <p>Se crea automáticamente el documento con el formato oficial del Poder Judicial de Corrientes.</p>
+        </div>
+        <div class="paso">
+          <div class="paso-num">3</div>
+          <h4>Descargá en .docx o PDF</h4>
+          <p>Descargá el archivo listo para imprimir y presentar, con QR único de verificación.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- FOOTER -->
+  <footer>
+    <p>© 2026 <strong>FacilitarAbogados</strong> — Herramienta oficial del Colegio de Abogados de Corrientes</p>
+    <p>Documentos según <strong>Acuerdos 5 y 6/26</strong> · Poder Judicial de la Provincia de Corrientes</p>
+  </footer>
+ 
+</body>
+</html>
