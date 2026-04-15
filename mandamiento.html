@@ -400,7 +400,7 @@
       document.getElementById('loadingOverlay').classList.add('active');
       try {
         const uuid = genUUID();
-        const qrUrl = `https://facilitarabogados.com/verificar/${uuid}`;
+        const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
         const { jsPDF } = window.jspdf;
