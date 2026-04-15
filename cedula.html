@@ -457,6 +457,32 @@
   </div>
  
   <script>
+const SUPABASE_URL = 'https://lxmiljegatcqtxndpbfj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4bWlsamVnYXRjcXR4bmRwYmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTUzMzMsImV4cCI6MjA5MTc5MTMzM30.zfyiiRjB-TiACgJY234K3I4fLAA55pmaBkaTo40T3wQ';
+
+async function guardarEnSupabase(uuid, datos, tipo) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/documentos`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        uuid: uuid,
+        tipo_documento: tipo,
+        juzgado: datos.juzgado,
+        expediente: datos.expediente,
+        caratula: datos.caratula,
+        lugar_fecha: `${datos.lugar}, ${datos.fechaFormateada}`
+      })
+    });
+  } catch(e) {
+    console.error('Error guardando en Supabase:', e);
+  }
+}
+
     // ── INIT ──
     const params = new URLSearchParams(window.location.search);
     const tipo = params.get('tipo') || 'simple';
@@ -645,6 +671,7 @@
  
       try {
         const uuid = genUUID();
+        await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
         const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
@@ -789,6 +816,7 @@
  
       try {
         const uuid = genUUID();
+        await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
         const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
