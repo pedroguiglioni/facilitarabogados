@@ -734,128 +734,84 @@ async function qrToBMP(text) {
   try {
     const uuid = genUUID();
     await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
-
     const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-    const qrBytes = await qrToBMP(qrUrl);
 
-    // Subir QR a Supabase Storage
-    const qrBlob = new Blob([qrBytes], { type: 'image/bmp' });
-    await fetch(`${SUPABASE_URL}/storage/v1/object/qr-codes/${uuid}.bmp`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'image/bmp',
-        'x-upsert': 'true'
-      },
-      body: qrBlob
+    // Generar QR como PNG base64
+    const qrBase64 = await new Promise(resolve => {
+      const div = document.createElement('div');
+      document.body.appendChild(div);
+      new QRCode(div, { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+      setTimeout(() => {
+        const canvas = div.querySelector('canvas');
+        const png = canvas.toDataURL('image/png').split(',')[1];
+        document.body.removeChild(div);
+        resolve(png);
+      }, 400);
     });
 
-    const qrImageUrl = `${SUPABASE_URL}/storage/v1/object/public/qr-codes/${uuid}.bmp`;
+    // Convertir base64 a bytes
+    const qrBinary = atob(qrBase64);
+    const qrBytes = new Uint8Array(qrBinary.length);
+    for (let i = 0; i < qrBinary.length; i++) qrBytes[i] = qrBinary.charCodeAt(i);
 
-   if (typeof docx === 'undefined') {
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle } = docx;
-
-    const paragraphs = [];
-
-    function addLine(label, value) {
-      paragraphs.push(new Paragraph({
-        children: [
-          new TextRun({ text: label, bold: true, font: 'Times New Roman', size: 20 }),
-          new TextRun({ text: value, font: 'Times New Roman', size: 20 }),
-        ]
-      }));
-    }
-
-    function addText(text, options = {}) {
-      paragraphs.push(new Paragraph({
-        alignment: options.center ? AlignmentType.CENTER : AlignmentType.LEFT,
-        border: options.border ? {
-          top: { style: BorderStyle.SINGLE, size: 4 },
-          bottom: { style: BorderStyle.SINGLE, size: 4 },
-          left: { style: BorderStyle.SINGLE, size: 4 },
-          right: { style: BorderStyle.SINGLE, size: 4 },
-        } : undefined,
-        children: [
-          new TextRun({ text, bold: options.bold, underline: options.underline ? {} : undefined, font: 'Times New Roman', size: 20 }),
-        ]
-      }));
-    }
-
-    function addEmpty() {
-      paragraphs.push(new Paragraph({ children: [new TextRun('')] }));
-    }
-
-    addLine('Juzgado: ', datos.juzgado);
-    addLine('N° Expte.: ', datos.expediente);
-    addLine('Carátula: ', datos.caratula);
-    addLine('Juez/a Dr./Dra: ', datos.juez);
-    addLine('Secretaría del Dr./Dra: ', datos.secretaria);
-    addLine('Domicilio del Juzgado: ', datos.domicilioJuzgado);
-    addLine('Objeto de la Notificación: ', datos.objetoNotificacion);
-    addEmpty();
-    addText('CÉDULA', { bold: true, underline: true, center: true });
-    addEmpty();
-
+    // Construir body del documento
+    let body = '';
+    body += parrafo(run('Juzgado: ', true) + run(datos.juzgado));
+    body += parrafo(run('N° Expte.: ', true) + run(datos.expediente));
+    body += parrafo(run('Carátula: ', true) + run(datos.caratula));
+    body += parrafo(run('Juez/a Dr./Dra: ', true) + run(datos.juez));
+    body += parrafo(run('Secretaría del Dr./Dra: ', true) + run(datos.secretaria));
+    body += parrafo(run('Domicilio del Juzgado: ', true) + run(datos.domicilioJuzgado));
+    body += parrafo(run('Objeto de la Notificación: ', true) + run(datos.objetoNotificacion));
+    body += parrafoVacio();
+    body += parrafo(run('CÉDULA', true, true), 'center');
+    body += parrafoVacio();
     datos.destinatarios.forEach(dest => {
-      addLine('DESTINATARIO/S: ', dest.nombre);
-      addLine('DOMICILIO: ', dest.domicilio);
-      addLine('CARÁCTER DEL DOMICILIO: ', dest.caracter);
-      addLine('LOCALIDAD: ', dest.localidad);
-      addEmpty();
+      body += parrafo(run('DESTINATARIO/S: ', true) + run(dest.nombre));
+      body += parrafo(run('DOMICILIO: ', true) + run(dest.domicilio));
+      body += parrafo(run('CARÁCTER DEL DOMICILIO: ', true) + run(dest.caracter));
+      body += parrafo(run('LOCALIDAD: ', true) + run(dest.localidad));
+      body += parrafoVacio();
     });
-
-    addText('Por la presente cédula se pone en su conocimiento que en el proceso judicial mencionado se ordenó notificarle por este medio lo siguiente:');
-    addEmpty();
-    addText(datos.providencia, { border: true });
-    addEmpty();
-
+    body += parrafo(run('Por la presente cédula se pone en su conocimiento que en el proceso judicial mencionado se ordenó notificarle por este medio lo siguiente:'), 'both');
+    body += parrafoVacio();
+    body += parrafo(run(datos.providencia), 'left', true);
+    body += parrafoVacio();
     if (esCompleta && datos.copias) {
-      addText(`Además, se acompañan las copias para traslado: ${datos.copias}, las cuales forman parte de esta notificación y sobre las cuales Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.`);
+      body += parrafo(run(`Además, se acompañan las copias para traslado: ${datos.copias}, las cuales forman parte de esta notificación y sobre las cuales Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.`), 'both');
     } else {
-      addText('Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.');
+      body += parrafo(run('Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.'), 'both');
     }
+    body += parrafoVacio();
+    body += parrafo(run('Para acceder a ellos puede hacerlo a través de:'));
+    body += parrafoVacio();
+    body += parrafo(run('a) Cargar la URL en su navegador:'));
+    body += parrafo(run(`URL: ${qrUrl}`));
+    body += parrafoVacio();
+    body += parrafo(run('b) Escanear el siguiente QR'));
+    body += parrafoVacio();
+    body += `<w:p><w:r><w:rPr/><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="1800000" cy="1800000"/><wp:docPr id="1" name="QR"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="QR"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1800000" cy="1800000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+    body += parrafoVacio();
+    body += parrafo(run('QUEDA UD. LEGALMENTE NOTIFICADO.-', true), 'center');
+    body += parrafoVacio();
+    body += parrafo(run(`${datos.lugar}, ${datos.fechaFormateada}.-`));
 
-    addEmpty();
-    addText('Para acceder a ellos puede hacerlo a través de:');
-    addEmpty();
-    addText('a) Cargar la URL en su navegador:');
-    addText(`URL: ${qrUrl}`);
-    addEmpty();
-    addText('b) Escanear el siguiente QR');
-    addEmpty();
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" mc:Ignorable="w14"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
 
-    paragraphs.push(new Paragraph({
-      children: [
-        new ImageRun({
-          data: qrBytes,
-          transformation: { width: 100, height: 100 },
-          type: 'bmp',
-        })
-      ]
-    }));
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/></Relationships>`;
 
-    addEmpty();
-    addText('QUEDA UD. LEGALMENTE NOTIFICADO.-', { bold: true, center: true });
-    addEmpty();
-    addText(`${datos.lugar}, ${datos.fechaFormateada}.-`);
+    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
 
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: paragraphs,
-      }]
-    });
+    const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
 
-    const blob = await Packer.toBlob(doc);
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', contentTypesXml);
+    zip.file('_rels/.rels', rootRelsXml);
+    zip.file('word/document.xml', documentXml);
+    zip.file('word/_rels/document.xml.rels', relsXml);
+    zip.file('word/media/qr.png', qrBytes, { binary: true });
+
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
