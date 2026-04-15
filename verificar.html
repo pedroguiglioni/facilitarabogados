@@ -55,7 +55,8 @@
 
     async function verificar() {
       const path = window.location.pathname;
-      const uuid = path.split('/verificar/')[1];
+     const parts = window.location.pathname.split('/');
+const uuid = parts[parts.length - 1];
 
       if (!uuid) { mostrarError(); return; }
 
