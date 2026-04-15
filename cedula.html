@@ -12,7 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- JSZip para generar docx -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js" onload="console.log('docx cargado:', typeof docx)"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -753,7 +753,7 @@ async function qrToBMP(text) {
 
     const qrImageUrl = `${SUPABASE_URL}/storage/v1/object/public/qr-codes/${uuid}.bmp`;
 
-   const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle, WidthType } = window.docx;
+   const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle } = docx;
 
     const paragraphs = [];
 
