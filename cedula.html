@@ -662,7 +662,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
   return `<w:r><w:rPr/><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${widthEmu}" cy="${heightEmu}"/><wp:docPr id="1" name="QR"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="QR"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
 }
  
-    async function generarDocx() {
+   async function generarDocx() {
   const datos = getDatos();
   if (!validar(datos)) return;
   document.getElementById('loadingOverlay').classList.add('active');
@@ -671,26 +671,97 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     const uuid = genUUID();
     await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
 
-    const response = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/generar-docx', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4bWlsamVnYXRjcXR4bmRwYmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTUzMzMsImV4cCI6MjA5MTc5MTMzM30.zfyiiRjB-TiACgJY234K3I4fLAA55pmaBkaTo40T3wQ',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4bWlsamVnYXRjcXR4bmRwYmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTUzMzMsImV4cCI6MjA5MTc5MTMzM30.zfyiiRjB-TiACgJY234K3I4fLAA55pmaBkaTo40T3wQ'
-      },
-      body: JSON.stringify({
-        tipo: 'cedula',
-        uuid: uuid,
-        datos: {
-          ...datos,
-          esCompleta: esCompleta
-        }
-      })
+    const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+
+    // Descargar imagen QR como base64
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}&format=png`;
+    const qrResp = await fetch(qrApiUrl);
+    const qrBuf = await qrResp.arrayBuffer();
+    const qrBytes = new Uint8Array(qrBuf);
+
+    // Construir XML del documento
+    let body = '';
+    body += parrafo(run('Juzgado: ', true) + run(datos.juzgado));
+    body += parrafo(run('N° Expte.: ', true) + run(datos.expediente));
+    body += parrafo(run('Carátula: ', true) + run(datos.caratula));
+    body += parrafo(run('Juez/a Dr./Dra: ', true) + run(datos.juez));
+    body += parrafo(run('Secretaría del Dr./Dra: ', true) + run(datos.secretaria));
+    body += parrafo(run('Domicilio del Juzgado: ', true) + run(datos.domicilioJuzgado));
+    body += parrafo(run('Objeto de la Notificación: ', true) + run(datos.objetoNotificacion));
+    body += parrafoVacio();
+    body += parrafo(run('CÉDULA', true, true), 'center');
+    body += parrafoVacio();
+
+    datos.destinatarios.forEach(dest => {
+      body += parrafo(run('DESTINATARIO/S: ', true) + run(dest.nombre));
+      body += parrafo(run('DOMICILIO: ', true) + run(dest.domicilio));
+      body += parrafo(run('CARÁCTER DEL DOMICILIO: ', true) + run(dest.caracter));
+      body += parrafo(run('LOCALIDAD: ', true) + run(dest.localidad));
+      body += parrafoVacio();
     });
 
-    if (!response.ok) throw new Error('Error en la función');
+    body += parrafo(run('Por la presente cédula se pone en su conocimiento que en el proceso judicial mencionado se ordenó notificarle por este medio lo siguiente:'), 'both');
+    body += parrafoVacio();
+    body += parrafo(run(datos.providencia), 'left', true);
+    body += parrafoVacio();
 
-    const blob = await response.blob();
+    if (esCompleta && datos.copias) {
+      body += parrafo(run(`Además, se acompañan las copias para traslado: ${datos.copias}, las cuales forman parte de esta notificación y sobre las cuales Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.`), 'both');
+    } else {
+      body += parrafo(run('Usted podrá expresar su aceptación o rechazo a través de un abogado/a de su confianza o de la defensoría oficial de su localidad siempre que Usted reúna los requisitos exigidos para su intervención, antes del vencimiento del plazo ordenado por el Juez/a.'), 'both');
+    }
+
+    body += parrafoVacio();
+    body += parrafo(run('Para acceder a ellos puede hacerlo a través de:'));
+    body += parrafoVacio();
+    body += parrafo(run('a) Cargar la URL en su navegador:'));
+    body += parrafo(run(`URL: ${qrUrl}`));
+    body += parrafoVacio();
+    body += parrafo(run('b) Escanear el siguiente QR'));
+    body += parrafoVacio();
+    body += `<w:p>${imagenRun('rId1')}</w:p>`;
+    body += parrafoVacio();
+    body += parrafo(run('QUEDA UD. LEGALMENTE NOTIFICADO.-', true), 'center');
+    body += parrafoVacio();
+    body += parrafo(run(`${datos.lugar}, ${datos.fechaFormateada}.-`));
+
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
+  mc:Ignorable="w14">
+  <w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body>
+</w:document>`;
+
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/>
+</Relationships>`;
+
+    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="png" ContentType="image/png"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+    const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', contentTypesXml);
+    zip.file('_rels/.rels', rootRelsXml);
+    zip.file('word/document.xml', documentXml);
+    zip.file('word/_rels/document.xml.rels', relsXml);
+    zip.file('word/media/qr.png', qrBytes, { binary: true });
+
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
