@@ -918,12 +918,27 @@ const {
     });
 
     const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Cedula_${datos.expediente.replace(/\//g, '-')}_${uuid.slice(0, 8)}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+// Descargar localmente
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `Cedula_${datos.expediente.replace(/\//g, '-')}_${uuid.slice(0, 8)}.docx`;
+a.click();
+URL.revokeObjectURL(url);
+
+// Subir a Google Drive si es completa
+if (esCompleta && driveData && driveData.folderId) {
+  const token = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/crear-carpeta-drive', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    body: JSON.stringify({ nombre: '__gettoken__', folderId: driveData.folderId })
+  });
+}
 
   } catch (e) {
     console.error(e);
