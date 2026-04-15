@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -332,7 +333,42 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         }, 300);
       });
     }
- 
+ async function qrToPNG(texto) {
+  const temp = document.createElement('div');
+  temp.style.position = 'fixed';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  new QRCode(temp, { text: texto, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.H });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const img = temp.querySelector('img');
+  const canvasOriginal = temp.querySelector('canvas');
+  let canvas = document.createElement('canvas');
+  canvas.width = 300; canvas.height = 300;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (img) {
+    await new Promise((resolve, reject) => {
+      const qrImg = new Image();
+      qrImg.crossOrigin = 'anonymous';
+      qrImg.onload = () => { ctx.drawImage(qrImg, 0, 0, 300, 300); resolve(); };
+      qrImg.onerror = reject;
+      qrImg.src = img.src;
+    });
+  } else if (canvasOriginal) {
+    ctx.drawImage(canvasOriginal, 0, 0, 300, 300);
+  } else {
+    document.body.removeChild(temp);
+    throw new Error('No se pudo generar el QR');
+  }
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const arrayBuffer = await blob.arrayBuffer();
+  document.body.removeChild(temp);
+  return new Uint8Array(arrayBuffer);
+}
+
+
+
     function esc(str) {
       return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
@@ -351,75 +387,103 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     }
  
     async function generarDocx() {
-      const d = getDatos();
-      if (!validar(d)) return;
-      document.getElementById('loadingOverlay').classList.add('active');
-      try {
-        const uuid = genUUID();
-        await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-        const qrBase64 = await generarQRBase64(qrUrl);
-        const hasQR = qrBase64 && qrBase64.includes(',');
- 
-        let body = '';
-        body += parrafo(run('Juzgado: ',true)+run(d.juzgado));
-        body += parrafo(run('N° Expte.: ',true)+run(d.expediente));
-        body += parrafo(run('Carátula: ',true)+run(d.caratula));
-        body += parrafo(run('Juez/a Dr./Dra: ',true)+run(d.juez));
-        body += parrafo(run('Secretaría del Dr./Dra: ',true)+run(d.secretaria));
-        body += parrafo(run('Domicilio del Juzgado: ',true)+run(d.domicilioJuzgado));
-        body += pVacio();
-        body += parrafo(run('MANDAMIENTO',true,true),'center');
-        body += pVacio();
-        body += parrafo(run('El Sr. Oficial de Justicia se hará presente en el domicilio ubicado en ')+run(d.domicilioDiligenciar,true)+run(`, y PROCEDERÁ a dar cumplimiento de lo ordenado en el expediente mencionado mediante la Resolución N°`)+run(d.resolucionNum,true)+run(`, que a continuación se transcribe:`),'both');
-        body += pVacio();
-        body += parrafo(run(d.resolucion),'left',true);
-        body += pVacio();
-        if (esCompleto && d.copias) {
-          body += parrafo(run(`Además, se acompañan las copias para traslado: ${d.copias}, las cuales forman parte de esta orden.`),'both');
-          body += pVacio();
-        }
-        body += parrafo(run('Para acceder a ellos puede hacerlo a través de:'));
-        body += pVacio();
-        body += parrafo(run('a) Cargar la URL en su navegador:'));
-        body += parrafo(run(`URL: ${qrUrl}`));
-        body += pVacio();
-        body += parrafo(run('b) Escanear el siguiente QR'));
-        body += pVacio();
-        if (hasQR) body += `<w:p>${imgRun(qrBase64.split(',')[1])}</w:p>`;
-        body += pVacio();
-        body += parrafo(run(`Dado, sellado y firmado en la Sala de mi Público Despacho, a los ${d.dia} días del mes de ${d.mes} del año ${d.anio}.-`),'both');
- 
-        const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="w14"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
- 
-        const relsXml = hasQR
-          ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/></Relationships>`
-          : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`;
- 
-        const zip = new JSZip();
-        zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
-        zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
-        zip.file('word/document.xml', docXml);
-        zip.file('word/_rels/document.xml.rels', relsXml);
-        if (hasQR) {
-          const qrBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
-          zip.file('word/media/qr.png', qrBytes);
-        }
- 
-        const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch(e) {
-        console.error(e);
-        alert('Error al generar el documento: ' + e.message);
-      } finally {
-        document.getElementById('loadingOverlay').classList.remove('active');
-      }
+  const d = getDatos();
+  if (!validar(d)) return;
+  document.getElementById('loadingOverlay').classList.add('active');
+  try {
+    const uuid = genUUID();
+    await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
+    const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+    const qrBytes = await qrToPNG(qrUrl);
+
+    if (!window.docx) throw new Error('La librería docx no cargó correctamente');
+
+    const { Document, Paragraph, TextRun, ImageRun, AlignmentType, Packer, BorderStyle } = window.docx;
+
+    const paragraphs = [];
+
+    function addLine(label, value) {
+      paragraphs.push(new Paragraph({
+        children: [
+          new TextRun({ text: label, bold: true, font: 'Times New Roman', size: 20 }),
+          new TextRun({ text: value || '', font: 'Times New Roman', size: 20 })
+        ]
+      }));
     }
+
+    function addText(text, options = {}) {
+      paragraphs.push(new Paragraph({
+        alignment: options.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+        border: options.border ? {
+          top: { style: BorderStyle.SINGLE, size: 4 },
+          bottom: { style: BorderStyle.SINGLE, size: 4 },
+          left: { style: BorderStyle.SINGLE, size: 4 },
+          right: { style: BorderStyle.SINGLE, size: 4 }
+        } : undefined,
+        children: [
+          new TextRun({ text: text || '', bold: !!options.bold, underline: options.underline ? {} : undefined, font: 'Times New Roman', size: 20 })
+        ]
+      }));
+    }
+
+    function addEmpty() {
+      paragraphs.push(new Paragraph({ children: [new TextRun({ text: '' })] }));
+    }
+
+    addLine('Juzgado: ', d.juzgado);
+    addLine('N° Expte.: ', d.expediente);
+    addLine('Carátula: ', d.caratula);
+    addLine('Juez/a Dr./Dra: ', d.juez);
+    addLine('Secretaría del Dr./Dra: ', d.secretaria);
+    addLine('Domicilio del Juzgado: ', d.domicilioJuzgado);
+    addEmpty();
+    addText('MANDAMIENTO', { bold: true, underline: true, center: true });
+    addEmpty();
+
+    addText(`El Sr. Oficial de Justicia se hará presente en el domicilio ubicado en ${d.domicilioDiligenciar}, y PROCEDERÁ a dar cumplimiento de lo ordenado en el expediente mencionado mediante la Resolución N° ${d.resolucionNum}, que a continuación se transcribe:`);
+    addEmpty();
+    addText(d.resolucion, { border: true });
+    addEmpty();
+
+    if (esCompleto && d.copias) {
+      addText(`Además, se acompañan las copias para traslado: ${d.copias}, las cuales forman parte de esta orden.`);
+      addEmpty();
+    }
+
+    addText('Para acceder a ellos puede hacerlo a través de:');
+    addEmpty();
+    addText('a) Cargar la URL en su navegador:');
+    addText(`URL: ${qrUrl}`);
+    addEmpty();
+    addText('b) Escanear el siguiente QR');
+    addEmpty();
+
+    paragraphs.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new ImageRun({ data: qrBytes, transformation: { width: 140, height: 140 }, type: 'png' })
+      ]
+    }));
+
+    addEmpty();
+    addText(`Dado, sellado y firmado en la Sala de mi Público Despacho, a los ${d.dia} días del mes de ${d.mes} del año ${d.anio}.-`);
+
+    const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+  } catch(e) {
+    console.error(e);
+    alert('Error al generar el documento: ' + e.message);
+  } finally {
+    document.getElementById('loadingOverlay').classList.remove('active');
+  }
+}
  
     async function generarPDF() {
       const d = getDatos();
