@@ -357,7 +357,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
       try {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
+        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
         const hasQR = qrBase64 && qrBase64.includes(',');
  
@@ -428,7 +428,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
       try {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar/${uuid}`;
+        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
         const qrBase64 = await generarQRBase64(qrUrl);
  
         const { jsPDF } = window.jspdf;
