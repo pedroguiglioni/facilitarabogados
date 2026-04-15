@@ -658,10 +658,9 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     function parrafoVacio() {
       return `<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>`;
     }
- 
-    function imagenRun(base64data, widthEmu=914400, heightEmu=914400) {
-      return `<w:r><w:rPr/><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${widthEmu}" cy="${heightEmu}"/><wp:docPr id="1" name="QR"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="QR"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
-    }
+ function imagenRun(url, widthEmu=914400, heightEmu=914400) {
+  return `<w:r><w:rPr/><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${widthEmu}" cy="${heightEmu}"/><wp:docPr id="1" name="QR"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="QR"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${widthEmu}" cy="${heightEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+}
  
     // ── GENERAR DOCX ──
     async function generarDocx() {
@@ -673,7 +672,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         const uuid = genUUID();
         await guardarEnSupabase(uuid, datos, esCompleta ? 'Cédula Completa' : 'Cédula Simple');
         const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-        const qrBase64 = await generarQRBase64(qrUrl);
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
  
         let body = '';
  
@@ -726,10 +725,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         body += parrafoVacio();
  
         // Imagen QR
-        const hasQR = qrBase64 && qrBase64.includes(',');
-        if (hasQR) {
-          body += `<w:p><w:r><w:rPr/>${imagenRun(qrBase64.split(',')[1], 914400, 914400)}</w:r></w:p>`;
-        }
+        body += `<w:p>${imagenRun(qrImageUrl, 914400, 914400)}</w:p>`;
  
         body += parrafoVacio();
  
@@ -764,11 +760,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
   </w:body>
 </w:document>`;
  
-        const relsXml = hasQR ? `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/qr.png"/>
-</Relationships>` : `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`;
+        const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${qrImageUrl}" TargetMode="External"/></Relationships>`;
  
         const zip = new JSZip();
         zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -787,10 +779,7 @@ async function guardarEnSupabase(uuid, datos, tipo) {
         zip.file('word/document.xml', documentXml);
         zip.file('word/_rels/document.xml.rels', relsXml);
  
-        if (hasQR) {
-          const qrBytes = Uint8Array.from(atob(qrBase64.split(',')[1]), c => c.charCodeAt(0));
-          zip.file('word/media/qr.png', qrBytes);
-        }
+        
  
         const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
         const url = URL.createObjectURL(blob);
