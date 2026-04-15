@@ -55,8 +55,8 @@
 
     async function verificar() {
       const path = window.location.pathname;
-     const parts = window.location.pathname.split('/');
-const uuid = parts[parts.length - 1];
+    const params = new URLSearchParams(window.location.search);
+const uuid = params.get('id');
 
       if (!uuid) { mostrarError(); return; }
 
