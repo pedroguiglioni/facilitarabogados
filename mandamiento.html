@@ -385,16 +385,42 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     function imgRun(b64, cx=914400, cy=914400) {
       return `<w:r><w:rPr/><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="QR"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="QR"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
     }
- 
+ async function blobToBase64(blob) {
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
     async function generarDocx() {
   const d = getDatos();
   if (!validar(d)) return;
   document.getElementById('loadingOverlay').classList.add('active');
   try {
     const uuid = genUUID();
-    await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
-    const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-    const qrBytes = await qrToPNG(qrUrl);
+await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
+
+let qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+let driveData = null;
+
+if (esCompleto) {
+  const nombreCarpeta = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}`;
+  const driveResp = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/crear-carpeta-drive', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    body: JSON.stringify({ nombre: nombreCarpeta })
+  });
+  driveData = await driveResp.json();
+}
+
+const qrBytes = await qrToPNG(qrUrl);
 
     if (!window.docx) throw new Error('La librería docx no cargó correctamente');
 
@@ -469,13 +495,41 @@ async function guardarEnSupabase(uuid, datos, tipo) {
     addText(`Dado, sellado y firmado en la Sala de mi Público Despacho, a los ${d.dia} días del mes de ${d.mes} del año ${d.anio}.-`);
 
     const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
-    a.click();
-    URL.revokeObjectURL(url);
+const blob = await Packer.toBlob(doc);
+
+// Descargar localmente
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}.docx`;
+a.click();
+URL.revokeObjectURL(url);
+
+// Subir a Google Drive si es completo
+if (esCompleto && driveData && driveData.folderId) {
+  const fileBase64 = await blobToBase64(blob);
+
+  const uploadResp = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/subir-archivo-drive', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    body: JSON.stringify({
+      folderId: driveData.folderId,
+      fileName: `Mandamiento_${d.expediente.replace(/\//g, '-')}_${uuid.slice(0, 8)}.docx`,
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      fileBase64: fileBase64
+    })
+  });
+
+  const uploadData = await uploadResp.json();
+
+  if (!uploadResp.ok) {
+    throw new Error(uploadData.error || 'No se pudo subir el DOCX a Google Drive');
+  }
+}
 
   } catch(e) {
     console.error(e);
