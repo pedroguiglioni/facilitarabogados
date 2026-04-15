@@ -696,12 +696,16 @@ async function qrToBMP(text) {
  
     // ── HELPERS XML ──
     function esc(str) {
-      return String(str || '')
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;');
-    }
+  return String(str || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&apos;')
+    .replace(/\r\n/g,'</w:t><w:br/><w:t xml:space="preserve">')
+    .replace(/\n/g,'</w:t><w:br/><w:t xml:space="preserve">')
+    .replace(/\r/g,'</w:t><w:br/><w:t xml:space="preserve">');
+}
  
     function parrafo(runs, jc='left', border=false) {
       const borderXml = border ? `<w:pBdr><w:top w:val="single" w:sz="4" w:space="1" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="1" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="4" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="4" w:color="000000"/></w:pBdr>` : '';
