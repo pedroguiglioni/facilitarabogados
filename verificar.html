@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar Documento — FacilitarAbogados</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --navy: #0f1f3d; --gold: #b8972a; --gold-light: #d4af50; --cream: #f7f4ef; --white: #ffffff; --gray-light: #e8e4dd; --text: #1a1a1a; --text-soft: #4a4a4a; --green: #27ae60; --red: #c0392b; }
+    body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
+    header { background: var(--navy); padding: 0 48px; display: flex; align-items: center; justify-content: space-between; height: 64px; border-bottom: 2px solid var(--gold); }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--gold); border-radius: 5px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 16px; height: 16px; fill: var(--navy); }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--white); }
+    .logo-text span { color: var(--gold-light); }
+    .container { max-width: 600px; margin: 60px auto; padding: 0 24px; }
+    .card { background: var(--white); border: 1px solid var(--gray-light); border-radius: 12px; padding: 40px; text-align: center; }
+    .icon-ok { width: 64px; height: 64px; background: rgba(39,174,96,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+    .icon-ok svg { width: 32px; height: 32px; fill: var(--green); }
+    .icon-error { width: 64px; height: 64px; background: rgba(192,57,43,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+    .icon-error svg { width: 32px; height: 32px; fill: var(--red); }
+    .icon-loading { width: 48px; height: 48px; border: 3px solid var(--gray-light); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 24px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--navy); margin-bottom: 12px; }
+    .subtitle { font-size: 14px; color: var(--text-soft); margin-bottom: 32px; }
+    .datos { text-align: left; border-top: 1px solid var(--gray-light); padding-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+    .dato { display: flex; flex-direction: column; gap: 4px; }
+    .dato-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); }
+    .dato-valor { font-size: 14px; color: var(--text); font-weight: 500; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(39,174,96,0.1); color: var(--green); margin-bottom: 24px; }
+    .btn-home { display: inline-block; margin-top: 32px; padding: 12px 28px; background: var(--navy); color: var(--white); border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg></div>
+      <span class="logo-text">Facilitar<span>Abogados</span></span>
+    </a>
+  </header>
+
+  <div class="container">
+    <div class="card" id="card">
+      <div class="icon-loading" id="loading"></div>
+      <h1>Verificando documento...</h1>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://lxmiljegatcqtxndpbfj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4bWlsamVnYXRjcXR4bmRwYmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTUzMzMsImV4cCI6MjA5MTc5MTMzM30.zfyiiRjB-TiACgJY234K3I4fLAA55pmaBkaTo40T3wQ';
+
+    async function verificar() {
+      const path = window.location.pathname;
+      const uuid = path.split('/verificar/')[1];
+
+      if (!uuid) { mostrarError(); return; }
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/documentos?uuid=eq.${uuid}&select=*`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        const data = await res.json();
+        if (data && data.length > 0) {
+          mostrarOk(data[0]);
+        } else {
+          mostrarError();
+        }
+      } catch(e) {
+        mostrarError();
+      }
+    }
+
+    function mostrarOk(doc) {
+      document.getElementById('card').innerHTML = `
+        <div class="icon-ok"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <div class="badge">✓ Documento verificado</div>
+        <h1>Documento válido</h1>
+        <p class="subtitle">Este documento fue generado por FacilitarAbogados y es auténtico.</p>
+        <div class="datos">
+          <div class="dato"><span class="dato-label">Tipo</span><span class="dato-valor">${doc.tipo_documento}</span></div>
+          <div class="dato"><span class="dato-label">Juzgado</span><span class="dato-valor">${doc.juzgado}</span></div>
+          <div class="dato"><span class="dato-label">Expediente</span><span class="dato-valor">${doc.expediente}</span></div>
+          <div class="dato"><span class="dato-label">Carátula</span><span class="dato-valor">${doc.caratula}</span></div>
+          <div class="dato"><span class="dato-label">Lugar y fecha</span><span class="dato-valor">${doc.lugar_fecha}</span></div>
+          <div class="dato"><span class="dato-label">Generado el</span><span class="dato-valor">${new Date(doc.created_at).toLocaleDateString('es-AR', {day:'2-digit',month:'long',year:'numeric'})}</span></div>
+        </div>
+        <a href="index.html" class="btn-home">Volver al inicio</a>
+      `;
+    }
+
+    function mostrarError() {
+      document.getElementById('card').innerHTML = `
+        <div class="icon-error"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        <h1>Documento no encontrado</h1>
+        <p class="subtitle">Este código QR no corresponde a ningún documento registrado en FacilitarAbogados.</p>
+        <a href="index.html" class="btn-home">Volver al inicio</a>
+      `;
+    }
+
+    verificar();
+  </script>
+</body>
+</html>
