@@ -418,6 +418,7 @@ if (esCompleto) {
     body: JSON.stringify({ nombre: nombreCarpeta })
   });
   driveData = await driveResp.json();
+  if (driveData.folderUrl) qrUrl = driveData.folderUrl;
 }
 
 const qrBytes = await qrToPNG(qrUrl);
@@ -545,9 +546,26 @@ if (esCompleto && driveData && driveData.folderId) {
       document.getElementById('loadingOverlay').classList.add('active');
       try {
         const uuid = genUUID();
-        await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
-        const qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
-        const qrBase64 = await generarQRBase64(qrUrl);
+await guardarEnSupabase(uuid, d, esCompleto ? 'Mandamiento Completo' : 'Mandamiento Simple');
+
+let qrUrl = `https://facilitarabogados.pages.dev/verificar.html?id=${uuid}`;
+let driveData = null;
+
+if (esCompleto) {
+  const nombreCarpeta = `Mandamiento_${d.expediente.replace(/\//g,'-')}_${uuid.slice(0,8)}`;
+  const driveResp = await fetch('https://lxmiljegatcqtxndpbfj.supabase.co/functions/v1/crear-carpeta-drive', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`
+    },
+    body: JSON.stringify({ nombre: nombreCarpeta })
+  });
+  driveData = await driveResp.json();
+}
+
+const qrBytes = await qrToPNG(qrUrl);
  
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
